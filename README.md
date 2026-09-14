@@ -33,7 +33,8 @@ Three.js 和字型均已放在本地，不使用 CDN、API、ES module、fetch �
 - `app.js` 的 `YEARS`：工作時間軸。現有年份對照為示範內容，須改成真實公司、職稱、日期。
 - `app.js` 的 `PROJECTS`：專案問題、架構、角色、技術、挑戰、解法與結果。
 - `app.js` 的 `SKILLS`：技術領域。
-- `index.html`：桌面首頁的介紹、年資、精選專案與 SEO metadata。
+- `app.js` 的 `renderWelcome()`：歡迎視窗的介紹與年資。
+- `index.html`：桌面捷徑、系統列與 SEO metadata。
 - `assets/hugo-profile-summary.pdf`：目前為僅包含已提供資訊的摘要草稿。換成完整履歷時，也請更新 `app.js` 的 `renderResume()` 預覽內容及說明。
 
 前四個專案為明確標記的架構示範，不宣稱是真實客戶專案；第五個是本網站。公司、績效數字及聯絡地址均未捏造。GitHub / LinkedIn 未填寫時會開啟聯絡面板，避免導向無關帳號。
@@ -49,7 +50,16 @@ Three.js 和字型均已放在本地，不使用 CDN、API、ES module、fetch �
 - `styles.css` 的 `.intro-scroll-distance` 控制總捲動距離；`app.js` 的 `OPENING` 定義各階段位置，實際進度為「捲軸比例 × OPENING.desktop」。快速拖曳捲軸會立即跳到對應畫面，不強迫補播中間動畫。
 - Skip intro 可直接進入桌面；Revisit the workspace 可重播整段流程。
 - 視窗縮放與手機橫直向旋轉會保留目前捲動比例，不因捲動距離改變而跳過開場。
-- 所有 application 都可用鍵盤開啟，Escape 關閉；視窗可最大化、最小化，桌面可拖動標題列。
+- 動畫後進入固定桌布、桌面捷徑、工作列與 Welcome 視窗。桌面不捲動，各 app 內容獨立捲動。
+- 每個 app 為独立單一實例；在桌面開啟另一 app 不會覆蓋前一個。點擊視窗置頂，最小化／關閉後重開保留同次頁面內的選擇、閱讀位置與輸入草稿。重新整理會建立新工作階段。
+- 桌面（≥1100px）可拖動標題列、最大化／還原，右上「···」提供左右並排與置中；右下角可拖曳或用方向鍵調整大小。
+- 工作列顯示開啟中／作用中／最小化狀態。點作用中 app 可最小化；Desktop 切換隱藏／恢復全部視窗。Apps 開啟完整應用程式清單。
+- 小於 1100px 改為單一作用中視窗；手機提供返回桌面控制和滿版 app，切換不遺失狀態。Welcome 留在捷徑下方。
+- Projects 採檔案總管清單，可切換 Backend／Portfolio 分類、選取預覽、開啟案例；四個概念案例仍清楚標示。
+- Architecture 使用可點擊的參考架構節點，與作品、終端機分別保留內容。
+- 所有 application 都可用鍵盤開啟；Escape 優先關閉啟動器或視窗排列選單，再關閉作用中視窗。一般視窗沒有 modal 遮罩，也不鎖住整頁焦點。
+- `#projects`、`#architecture`、`#resume`、`#welcome` 可直達；明確 app 導覽支援瀏覽器上一頁／下一頁。
+- 終端機導航會開啟／聚焦目的 app，原終端機繼續保留。
 - 終端機：`help`、`whoami`、`about`、`experience`、`projects`、`skills`、`architecture`、`database`、`resume`、`contact`、`clear`。
 - Ctrl / Command + K 開啟終端機；上下方向鍵查閱輸入歷史。
 - 手機與窄視窗同樣播放完整 3D 工作室開場，不再以 700px 寬度跳過動畫。省流量 / 低記憶體裝置仍不下載 3D，改用滑動控制的 BIOS 精簡版本，滑到底才進桌面；也可點擊底部提示或跳過。
@@ -65,9 +75,23 @@ Three.js 和字型均已放在本地，不使用 CDN、API、ES module、fetch �
 
 使用支援傳統 script 的 Three.js r160，目的是支援 `file://` 直接開檔；其上游棄用提示不影響此版本的使用。直接開檔的網站不適用跨來源 API / OAuth 等功能，本網站也不依賴這些功能。
 
-## 本次驗證
+工作室保留低多邊形構圖，使用有倒角的桌面、螢幕外殼、鍵帽、筆電與書本；杯子以旋轉截面建出杯底、內壁與圓潤杯口。設備補上支架底座、筆電轉軸與觸控板、分層書頁、桌墊縫線、線材、機架把手與散熱孔。材質區分深木、霧面塑膠、陶瓷、陽極金屬、烤漆金屬與玻璃；微表面貼圖及柔光反射環境都在本機程式化生成，無新增外部下載。環境光改為中性石墨色調，綠光僅由主螢幕局部照向桌面。重複細節以 InstancedMesh 合併，共 212 個網格批次、約 13 萬三角形（不含陰影額外繪製），共享資源於離開開場時釋放。
+
+## 2026-09-14 桌面改版驗證
+
+- `node --check app.js`：JavaScript 語法。
+- `node tests/intro-animation.cjs`：既有 62,460 個鏡頭位置與 BIOS 狀態回歸通過；3D 場景檔案維持現況。
+- `tests/desktop.cjs`：以 jsdom 執行正式 HTML／JavaScript，覆蓋所有 app、多視窗共存、最小化與重開、草稿／閱讀狀態、終端機文字轉義、焦點、拖曳邊界、並排、大小調整、窄版單 app、歷史返回與重播恢復。jsdom 沒有排版引擎，這項測試不代表瀏覽器視覺或實機觸控驗證。
+- 測試工具僅安裝在暫存目錄，網站沒有新增執行依賴。可另行安裝 jsdom 後以 `NODE_PATH=<含 jsdom 的 node_modules 目錄> node tests/desktop.cjs` 執行。
+- 本機 HTTP 預覽回傳 200；本地資源引用與配送檔案完整性檢查。
+- 本次未進行瀏覽器截圖或實機視覺驗證。
+
+桌布：`assets/desktop-wallpaper.png`，以內建 imagegen 生成。提示方向為 16:10 抽象霧面摺面、石墨黑與低彩度森林綠，左側留深色空間，右側柔和斜向光線，無文字、圖示、物件或介面。
+
+## 先前開場驗證
 
 - JavaScript 語法與本地資源路徑檢查。
+- 材質升級：1280×720、375×667 與 667×375 瀏覽器視覺檢查；測試限制網格／三角形預算，並確認共用材質、貼圖、幾何與 instance buffer 在離開時釋放。
 - 捲軸開場：初始靜止、快速跳到指定進度、反向跨越螢幕交接、跳過與重播歸零。
 - 完整 3D 窄版：320×568、375×667、773×828 初始工作室、螢幕內 BIOS、全畫面交接與滑到底進桌面；375×667 → 667×375 旋轉與反向捲動確認進度保留。
 - 透過僅提供網站公開檔案的本機 HTTP 預覽檢查 3D、開機、桌面、視窗與互動。
@@ -82,5 +106,7 @@ Three.js 和字型均已放在本地，不使用 CDN、API、ES module、fetch �
 - Manrope：SIL Open Font License，見 `assets/fonts/MANROPE-LICENSE.txt`。
 
 ## 目錄說明
+
+`.openai/hosting.json` 經確認指向另一個「履歷工坊」網站，這份作品集不可沿用該 ID 發佈，以免覆蓋既有網站。
 
 舊專案原有的 `.openai`、`.next`、`.vinext`、`.wrangler` 等目錄不參與本網站執行，也不會包含在 Actions 發佈內容中。原先已刪除的框架檔案未恢復。

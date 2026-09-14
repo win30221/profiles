@@ -7,12 +7,32 @@ class Renderer{
   constructor(){this.shadowMap={};this.domElement={addEventListener(){},removeEventListener(){},remove(){}};}
   setPixelRatio(){}setSize(){}render(s,c){scene=s;camera=c;}dispose(){}forceContextLoss(){}
 }
+// Environment convolution is a GPU operation; geometry, textures, materials,
+// instancing and camera math still use the shipped Three.js implementation.
+class PMREMGenerator{
+  fromEquirectangular(){return new THREE.WebGLRenderTarget(16,16);}dispose(){}
+}
 const listeners={};
-const window={THREE:{...THREE,WebGLRenderer:Renderer},devicePixelRatio:1,addEventListener(k,fn){listeners[k]=fn;},removeEventListener(){}};
+const window={THREE:{...THREE,WebGLRenderer:Renderer,PMREMGenerator},devicePixelRatio:1,addEventListener(k,fn){listeners[k]=fn;},removeEventListener(){}};
 const context=vm.createContext({window,innerWidth:1280,innerHeight:720});
 vm.runInContext(fs.readFileSync(path.join(root,'scene.js'),'utf8'),context);
 const host={clientWidth:1280,clientHeight:720,appendChild(){}};
 const studio=window.createWorkspaceScene(host,{arrival:10.4});
+studio.render(5);
+// Detailed props must keep a bounded draw/triangle budget, and every shared
+// surface map, material, geometry and instance buffer must survive until exit.
+const liveResources=new Set();let drawCount=0,triangleCount=0;
+scene.traverse(object=>{
+ if(!object.isMesh)return;
+ drawCount++;triangleCount+=(object.geometry.index?.count??object.geometry.attributes.position.count)/3*(object.isInstancedMesh?object.count:1);
+ liveResources.add(object.geometry);liveResources.add(object.material);
+ if(object.isInstancedMesh)liveResources.add(object);
+ for(const value of Object.values(object.material))if(value?.isTexture)liveResources.add(value);
+});
+assert(drawCount<250,'Repeated details must be batched to bound draw calls');
+assert(triangleCount<160000,'Keep the stylized scene within its geometry budget');
+const disposedResources=new Set();
+liveResources.forEach(resource=>resource.addEventListener('dispose',()=>disposedResources.add(resource)));
 function project(p,x,y){
   const m=p.transform.slice(9,-1).split(',').map(Number),den=m[3]*x+m[7]*y+m[15];
   return [(m[0]*x+m[4]*y+m[12])/den,(m[1]*x+m[5]*y+m[13])/den];
@@ -65,6 +85,9 @@ const hiddenResize=studio.render(9);
 assert.equal(hiddenResize.width,375);assert.equal(hiddenResize.height,667);assert(hiddenResize.points.flat().every(Number.isFinite));
 host.clientWidth=375;host.clientHeight=667;listeners.resize();assert.equal(studio.render(9).transform,hiddenResize.transform);
 studio.dispose();
+assert.equal(disposedResources.size,liveResources.size,'Release shared GPU resources when leaving the intro');
+studio.dispose(); // Repeated exit/context-loss cleanup remains harmless.
+console.log(`PASS: ${drawCount} mesh batches, ${triangleCount} triangles; all ${liveResources.size} shared resources released.`);
 console.log(`PASS: ${sizes.length} viewports, ${frameCount} camera frames, five content positions, three pointer positions; no overshoot or retreat. Handoff error < ${Math.max(maxError,1e-12)} px.`);
 
 // Exercise the production application clock without GPU or browser timers.

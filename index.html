@@ -8,18 +8,17 @@
   <title>HUGO OS — An engineer's workspace</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260913-7">
-  <script src="app.js?v=20260913-7" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260914-2">
+  <link rel="stylesheet" href="os.css?v=20260914-2">
+  <script src="os.js?v=20260914-2" defer></script>
+  <script src="app.js?v=20260914-2" defer></script>
 </head>
 <body class="intro-active">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
   <div id="cinematic" class="cinematic" aria-label="Engineering workspace introduction">
     <div id="scene-host" aria-hidden="true"></div>
     <div class="film-grain" aria-hidden="true"></div>
-    <div class="cinema-top"><span class="brand"><span class="brand-symbol">H</span> HUGO OS<span class="version">/ 1.0</span></span><span class="mono scene-label">A LOOK INSIDE THE WORKSPACE</span></div>
-    <div id="intro-copy" class="intro-copy"><span class="eyebrow">01 / THE WORKSPACE</span><h1>Every system starts<br>somewhere.</h1><p>A quiet room. A connected world.</p></div>
-    <div class="cinema-bottom"><span id="scene-caption" class="mono">ENTERING THE WORKSPACE</span></div>
-    <div class="intro-progress"><i id="intro-progress"></i></div>
+    <div id="intro-copy" class="intro-copy"><h1>Every system starts<br>somewhere.</h1><p>A quiet room. A connected world.</p></div>
   </div>
   <section id="boot" class="boot hidden" aria-label="HUGO OS startup" aria-live="off">
     <div class="boot-inner">
@@ -35,28 +34,38 @@
   </section>
   <div id="intro-scroll" class="intro-scroll hidden" tabindex="0" role="region" aria-label="Scroll down to advance the introduction. Scroll up to rewind. Use arrow keys or Page Down to move."><div class="intro-scroll-distance" aria-hidden="true"></div></div>
   <div id="intro-controls" class="intro-controls">
-    <button id="scroll-cue" class="scroll-cue hidden" aria-label="Scroll to enter"><span class="scroll-symbol" aria-hidden="true">↓</span><span><strong>Scroll to enter</strong><small>YOUR PACE. YOUR WORKSPACE.</small></span></button>
-    <button id="skip-intro" class="text-button">Skip intro <span aria-hidden="true">↗</span></button>
+    <div id="scroll-cue" class="scroll-cue hidden" aria-hidden="true"><span class="scroll-text">SCROLL TO EXPLORE</span><span class="scroll-symbol">↓</span></div>
+    <button id="skip-intro" class="text-button" aria-label="Skip intro">Skip intro <span aria-hidden="true">↗</span></button>
   </div>
-  <div id="desktop" class="desktop" inert aria-hidden="true">
-    <header class="topbar"><button class="brand" data-action="home" aria-label="HUGO OS home"><span class="brand-symbol">H</span> HUGO OS <span class="version">v1.0</span></button><div class="top-divider"></div><span class="top-role">Backend Engineer / Engineering Manager</span><span class="online"><i class="status-dot"></i> System online</span><nav class="top-links" aria-label="External profiles"><button data-social="github">GitHub <span>↗</span></button><button data-social="linkedin">LinkedIn <span>↗</span></button><button data-app="resume">Resume <span>↗</span></button><button data-app="contact">Let’s talk <span>↗</span></button></nav></header>
-    <div class="desktop-layout">
-      <aside class="sidebar"><div class="sidebar-section"><span class="eyebrow">EXPLORER</span><span class="mono">08</span></div><nav id="app-nav" class="app-nav" aria-label="Portfolio applications"></nav><div class="sidebar-bottom"><div class="sidebar-note"><span class="tiny-label">CURRENT ENVIRONMENT</span><p>Thoughtfully engineered.<br>Always evolving.</p><span class="mono"><i class="status-dot"></i> portfolio.service active</span></div><button id="replay-intro" class="replay-button"><span data-icon="replay"></span> Revisit the workspace <span>↗</span></button></div></aside>
-      <main id="workspace" class="workspace" tabindex="-1">
-        <div class="workspace-path mono"><span data-icon="home"></span><span>hugo</span><span class="path-divider">/</span><span>workspace</span><span class="path-status">SESSION: VISITOR</span></div>
-        <div class="workspace-heading"><div><span class="eyebrow">THE ENGINEER BEHIND THE SYSTEMS</span><h1>Welcome to my workspace<span>.</span></h1></div><div class="local-time mono"><span id="clock">--:--</span><span>TAIPEI, TW</span></div></div>
-        <div class="dashboard-grid">
-          <section class="window about-window"><div class="window-bar"><span><span data-icon="user"></span> ABOUT.exe</span><button data-app="about" aria-label="Open About"><span data-icon="expand"></span></button></div><div class="about-body"><div class="profile-tag"><span class="profile-monogram">h.</span><span>HUGO <span class="muted">/ ENGINEER & TEAM BUILDER</span></span><i class="status-dot"></i></div><h2>Building systems.<br><span>Empowering people.</span></h2><p>I turn complex problems into reliable backend systems — and help engineering teams do their best work.</p><button class="text-button" data-app="about">A little more about me <span>↗</span></button><div class="stats"><div><strong>10<span>+</span></strong><span>Years building software</span></div><div><strong>8<span>+</span></strong><span>Years with Golang</span></div><div><strong>5<span>+</span></strong><span>Years leading teams</span></div></div></div></section>
-          <section class="window architecture-window"><div class="window-bar"><span><span data-icon="network"></span> ARCHITECTURE.exe</span><button data-app="architecture" aria-label="Open Architecture"><span data-icon="expand"></span></button></div><div class="architecture-body"><div class="section-top"><span class="eyebrow">THINK IN SYSTEMS</span><span class="small-tag">INTERACTIVE</span></div><h2>Simple on the surface.<br>Intentional underneath.</h2><div class="mini-architecture"><button data-node="gateway"><span data-icon="globe"></span><span>API Gateway</span><span class="node-note">ENTRYPOINT</span></button><div class="connector-line"></div><button data-node="services" class="highlight-node"><span data-icon="cpu"></span><span>Golang Services</span><i class="status-dot"></i></button><div class="split-connector"></div><div class="node-pair"><button data-node="redis"><span data-icon="layers"></span> Redis</button><button data-node="mysql"><span data-icon="database"></span> MySQL</button></div></div><button class="text-button" data-app="architecture">Explore the architecture <span>↗</span></button></div></section>
-          <section class="window projects-window"><div class="window-bar"><span><span data-icon="folder"></span> PROJECTS.exe</span><span class="mono muted">SYSTEM ARCHIVE / 05</span></div><div class="project-feature"><div class="section-top"><span class="eyebrow">SELECTED SYSTEM / 01</span><span class="sample-label">CONCEPT CASE STUDY</span></div><h2>High-concurrency<br>transaction system<span>↗</span></h2><p>Keeping transactions consistent when everything happens at once.</p><div class="project-bottom"><div class="tags"><span>Golang</span><span>MySQL</span><span>Redis</span><span>RabbitMQ</span></div><button class="round-button" data-project="0" aria-label="Explore high-concurrency transaction system"><span data-icon="arrow"></span></button></div></div><button class="window-footer" data-app="projects"><span>Explore the system archive</span><span>05 PROJECTS <span aria-hidden="true">↗</span></span></button></section>
-          <section class="window terminal-window"><div class="window-bar"><span><span data-icon="terminal"></span> TERMINAL.exe</span><span class="mono muted">zsh — visitor</span></div><div class="terminal-preview mono"><p class="muted">HUGO OS [Version 1.0.0]<br>A different way to get to know me.</p><p><span class="prompt-user">visitor@hugo</span><span class="muted">:~$</span> whoami</p><p>Hugo<br><span class="muted">Backend Engineer / Engineering Manager</span></p><p class="terminal-help">Type <button data-command="help">help</button> to see what’s possible.</p><form id="quick-terminal" class="terminal-input-line"><label for="quick-command" class="prompt-user">visitor@hugo<span class="muted">:~$</span></label><input id="quick-command" name="command" aria-label="Terminal command" autocomplete="off" spellcheck="false" placeholder="type a command..."><button aria-label="Run command"><span data-icon="arrow"></span></button></form></div></section>
-        </div>
-        <div class="workspace-bottom"><span><i class="status-dot"></i> A collection of systems, decisions, and lessons.</span><button data-app="experience">Explore the journey <span>↗</span></button></div>
-      </main>
-    </div>
-    <footer class="statusbar mono"><span><span data-icon="terminal"></span> HUGO OS <span class="muted">/ PERSONAL WORKSPACE</span></span><span class="status-hint">Click an application. Follow your curiosity.</span><span><span data-icon="wifi"></span> LOCAL SESSION <span class="status-separator">|</span> <button data-app="terminal">⌘ K <span class="muted">Terminal</span></button></span></footer>
+  <div id="desktop" class="desktop os-shell" inert aria-hidden="true">
+    <div class="os-wallpaper" aria-hidden="true"></div>
+    <header class="os-menubar">
+      <button class="os-brand" data-action="home" aria-label="Show desktop"><span class="brand-symbol">H</span> HUGO OS</button>
+      <span id="active-app-label" class="os-active-label">Desktop</span>
+      <div class="os-system"><span class="os-visitor"><span data-icon="user"></span> Visitor</span><button class="system-settings" data-app="settings" aria-label="Open settings" title="Settings"><span data-icon="settings"></span></button><span class="os-location">Taipei</span><time id="clock">--:--</time></div>
+    </header>
+    <main id="workspace" class="os-workspace" tabindex="-1" aria-label="Hugo desktop">
+      <nav class="desktop-shortcuts" aria-label="Desktop shortcuts">
+        <button data-app="browser"><span class="shortcut-art" data-icon="globe"></span><span>Browser</span></button>
+        <button data-app="projects"><span class="shortcut-art folder-art" data-icon="folder"></span><span>Projects</span></button>
+        <button data-app="resume"><span class="shortcut-art paper-art" data-icon="file"></span><span>Resume.pdf</span></button>
+        <button data-app="files"><span class="shortcut-art" data-icon="folder"></span><span>Files</span></button>
+      </nav>
+      <div class="wallpaper-signature" aria-hidden="true"><span>H</span><small>PERSONAL WORKSPACE</small></div>
+      <div class="desktop-caption mono">BACKEND ENGINEERING<br>AND THE PEOPLE BEHIND IT</div>
+      <div id="window-layer" class="window-layer"></div>
+    </main>
+    <section id="launcher" class="os-launcher" aria-labelledby="launcher-title" hidden>
+      <div class="launcher-heading"><span><strong id="launcher-title">Applications</strong><small>Hugo’s workspace</small></span><button data-action="launcher-close" aria-label="Close applications"><span data-icon="close"></span></button></div>
+      <nav id="app-nav" class="launcher-apps" aria-label="All applications"></nav>
+      <button id="replay-intro" class="launcher-replay"><span data-icon="replay"></span> Revisit the workspace</button>
+    </section>
+    <footer class="os-dock" aria-label="Taskbar">
+      <button id="launcher-toggle" class="dock-start" data-action="launcher" aria-label="Applications" aria-expanded="false" aria-controls="launcher"><span class="brand-symbol">H</span><span class="dock-label">Apps</span></button>
+      <div class="dock-divider"></div><nav id="dock-apps" aria-label="Pinned and running applications"></nav>
+      <div class="dock-divider"></div><button class="dock-desktop" data-action="home" aria-label="Show desktop"><span data-icon="home"></span><span class="dock-label">Desktop</span></button>
+    </footer>
   </div>
-  <dialog id="app-dialog" class="app-dialog" aria-labelledby="dialog-app-name"><div id="dialog-titlebar" class="dialog-titlebar"><span id="dialog-app-name"></span><div class="window-controls"><button id="minimize-window" aria-label="Minimize window"><span data-icon="minus"></span></button><button id="maximize-window" aria-label="Maximize window"><span data-icon="expand"></span></button><button id="close-window" aria-label="Close window"><span data-icon="close"></span></button></div></div><div id="app-content" class="app-content"></div><div class="dialog-status mono"><span id="app-path"></span><span><i class="status-dot"></i> READY</span></div></dialog>
   <div id="toast" class="toast" role="status"></div>
   <noscript><main class="no-script"><h1>Hugo — Backend Engineer / Engineering Manager</h1><p>10+ years in software development. 8+ years in Golang. 5+ years in team management.</p><p>Expertise: Golang, MySQL, Redis, RabbitMQ, Docker, Kubernetes, GCP, and system design.</p><p>Please enable JavaScript to explore the interactive workspace.</p></main></noscript>
 </body>
