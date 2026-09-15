@@ -338,6 +338,7 @@ function tickOpening(timestamp){
       // Restore layout before reading scene dimensions on a fullscreen rewind.
       $('#cinematic').classList.remove('hidden');
       const projection=studio.render(cameraTime,time);
+      $('#scene-host').classList.add('scene-loaded');
       if(projection)projectBoot(projection);
       phase='intro';
     }else{
@@ -392,16 +393,19 @@ async function startIntro(){
   $('#skip-intro').innerHTML='Skip intro <span aria-hidden="true">↗</span>';
   $('#intro-copy').style.opacity='1';$('#intro-copy').style.transform='none';
   $('#cinematic').classList.remove('hidden','screen-focus');$('#intro-copy').classList.remove('fade');
-  $('#scene-host').replaceChildren();$('#scene-host').style.filter='none';
+  $('#scene-host').classList.remove('scene-loaded');$('#scene-host').replaceChildren();$('#scene-host').style.filter='none';
   const simple=(navigator.deviceMemory&&navigator.deviceMemory<=2)||navigator.connection?.saveData;
   if(reducedMotion.matches||window.HugoOS?.settings.reduceMotion){beginClock({instant:true});return;}
   if(simple){beginClock({simple:true});return;}
   try{
     if(!window.THREE)await loadClassic('assets/vendor/three.min.js');
     if(run!==introRun||phase!=='intro')return;
-    if(!window.createWorkspaceScene)await loadClassic('scene.js?v=20260913-9');
+    // The complete local set is required; unavailable assets use simple boot.
+    if(window.WorkspaceModelData?.version!==5)await loadClassic('assets/models/room-scene.js?v=20260915-tv-no-laptop-1');
     if(run!==introRun||phase!=='intro')return;
-    studio=window.createWorkspaceScene($('#scene-host'),{arrival:OPENING.arrival,onFailure(){
+    if(!window.createWorkspaceScene)await loadClassic('scene.js?v=20260915-tv-no-laptop-1');
+    if(run!==introRun||phase!=='intro')return;
+    const createdScene=await window.createWorkspaceScene($('#scene-host'),{arrival:OPENING.arrival,onFailure(){
       if(run!==introRun||phase==='desktop')return;
       // Preserve already-displayed progress if the graphics context is lost.
       const time=Math.max(opening?.time||0,OPENING.bios);
@@ -414,6 +418,8 @@ async function startIntro(){
         scroller.scrollTop=opening.progress*(scroller.scrollHeight-scroller.clientHeight);
       }
     }});
+    if(run!==introRun||phase!=='intro'){createdScene?.dispose?.();return;}
+    studio=createdScene;
     if(studio?.dispose){sceneCleanup=()=>studio?.dispose();beginClock();}
     else{studio=null;beginClock({simple:true});}
   }catch(error){

@@ -2,6 +2,7 @@
    only GPU rendering is stubbed, so the production camera/projection is tested. */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),THREE=require(path.join(root,'assets/vendor/three.min.js'));
+(async()=>{
 let scene,camera;
 class Renderer{
   constructor(){this.shadowMap={};this.domElement={addEventListener(){},removeEventListener(){},remove(){}};}
@@ -14,10 +15,23 @@ class PMREMGenerator{
 }
 const listeners={};
 const window={THREE:{...THREE,WebGLRenderer:Renderer,PMREMGenerator},devicePixelRatio:1,addEventListener(k,fn){listeners[k]=fn;},removeEventListener(){}};
-const context=vm.createContext({window,innerWidth:1280,innerHeight:720});
+class ImageStub{set src(value){this.source=value;queueMicrotask(()=>this.onload());}}
+const context=vm.createContext({window,atob,Blob,Response,DecompressionStream,Image:ImageStub,innerWidth:1280,innerHeight:720});
+vm.runInContext(fs.readFileSync(path.join(root,'assets/models/room-scene.js'),'utf8'),context);
 vm.runInContext(fs.readFileSync(path.join(root,'scene.js'),'utf8'),context);
 const host={clientWidth:1280,clientHeight:720,appendChild(){}};
-const studio=window.createWorkspaceScene(host,{arrival:10.4});
+const model=window.WorkspaceModelData;
+delete window.WorkspaceModelData;
+await assert.rejects(window.createWorkspaceScene(host,{}),/unavailable/,'Missing models must use simple boot, never the deleted scene');
+window.WorkspaceModelData=model;
+const encodedGeometry=model.geometry;
+model.geometry={...encodedGeometry,codec:'unsupported'};
+await assert.rejects(window.createWorkspaceScene(host,{}),/Unsupported room geometry/);
+model.geometry={...encodedGeometry,data:'AAAA'};
+await assert.rejects(window.createWorkspaceScene(host,{}),'Corrupt compressed geometry must reject before creating GPU resources');
+model.geometry=encodedGeometry;
+const studio=await window.createWorkspaceScene(host,{arrival:10.4});
+assert.equal(require('node:crypto').createHash('sha256').update(new Uint8Array(model.decodedGeometry)).digest('hex'),encodedGeometry.sha256,'Runtime decompression preserves the exact packed bytes');
 studio.render(5);
 // Detailed props must keep a bounded draw/triangle budget, and every shared
 // surface map, material, geometry and instance buffer must survive until exit.
@@ -29,8 +43,50 @@ scene.traverse(object=>{
  if(object.isInstancedMesh)liveResources.add(object);
  for(const value of Object.values(object.material))if(value?.isTexture)liveResources.add(value);
 });
-assert(drawCount<250,'Repeated details must be batched to bound draw calls');
-assert(triangleCount<160000,'Keep the stylized scene within its geometry budget');
+assert(drawCount<240,'Material batching bounds draw calls without changing model detail');
+const stats=JSON.parse(fs.readFileSync(path.join(root,'assets/models/model-stats.json')));
+assert.equal(stats.decimation,false,'The requested preview must not decimate source meshes');
+assert.equal(triangleCount,stats.sourceTriangles-stats.excludedTriangles+2,'Every retained source triangle is present');
+const set=scene.getObjectByName('gaming-room');assert(set);
+assert.equal(set.children.length,model.parts.length);
+// TV must emit its original image toward the room despite the source's
+// inward winding; laptop parts must be absent from the delivered assembly.
+const tv=set.children.find(o=>o.material.name==='Material.005');
+assert(tv?.material.emissiveMap&&tv.material.emissiveIntensity>0,'TV retains its emission image');
+assert.equal(tv.material.map,tv.material.emissiveMap);
+const tvPoint=new THREE.Vector3(),tvNormal=new THREE.Vector3();
+for(let i=0;i<3;i++)tvPoint.add(new THREE.Vector3().fromBufferAttribute(tv.geometry.attributes.position,tv.geometry.index.getX(i)));
+tvPoint.divideScalar(3);tvNormal.fromBufferAttribute(tv.geometry.attributes.normal,tv.geometry.index.getX(0));
+assert(new THREE.Raycaster(tvPoint.clone().addScaledVector(tvNormal,-.1),tvNormal).intersectObject(tv).length,'TV display is visible from the reverse side facing the room');
+const laptopParts=model.excludedObjects.filter(o=>o.reason==='laptop');
+assert.equal(laptopParts.length,21);
+assert(laptopParts.every(part=>!model.objects.some(o=>o.name===part.name)));
+assert.equal(triangleCount,model.parts.reduce((total,part)=>total+part.triangles,0)+2);
+for(const name of ['Cube','Plane_Plane.035','Circle.001','Circle.003','Plane.014_Plane.007','Cube.009','Sit_Cube.432'])assert(model.objects.some(o=>o.name===name),'Original room, desk, monitors, bed, window and chair retained');
+for(const name of ['flos-kelvin','xiaomi-desk-lamp','gaming-desk','studio-nas','encyclopedia-1'])assert(!scene.getObjectByName(name),'No retired props return');
+scene.traverse(o=>{
+ if(!o.isMesh)return;
+ assert(o.geometry.attributes.position.array.every(Number.isFinite));
+ assert(o.geometry.index.array.every(i=>i<o.geometry.attributes.position.count));
+ if(o.material.map)assert(o.geometry.attributes.uv,'Textured source parts retain UVs');
+});
+for(const name of ['Cube.376_Cube.396','Cube.359_Cube.361'])assert(!model.objects.some(o=>o.name===name),'Discard detached floating fragments');
+assert(model.excludedObjects.some(o=>o.name==='Cube.376_Cube.396'));
+assert.equal(model.lights.length,5,'Recover all five original Blender area lights');
+assert.equal(model.lights.filter(l=>l.color[0]>.9&&l.color[1]<.02).length,4,'Keep the four authored red lights');
+for(const source of model.lights){
+ const light=scene.getObjectByName('source-light-'+source.name);
+ assert(light?.isRectAreaLight);assert.equal(light.width,source.width);assert.equal(light.height,source.height);
+ assert.deepEqual(light.position.toArray(),Array.from(source.position));
+}
+for(const kind of ['FLOAT','HALF'])for(const i of [1,2])liveResources.add(THREE.UniformsLib['LTC_'+kind+'_'+i]);
+scene.updateMatrixWorld(true);
+const center=new THREE.Vector3(...model.screen.center);
+for(const x of [-.4,0,.4])for(const y of [-.4,0,.4]){
+ const ray=new THREE.Raycaster(center.clone().add(new THREE.Vector3(x*model.screen.width,y*model.screen.height,.2)),new THREE.Vector3(0,0,-1));
+ const hits=ray.intersectObject(scene,true).filter(h=>!h.object.material.transparent);
+ assert.equal(hits[0]?.object.name,'display-surface','Monitor casing cannot cover the BIOS aperture');
+}
 const disposedResources=new Set();
 liveResources.forEach(resource=>resource.addEventListener('dispose',()=>disposedResources.add(resource)));
 function project(p,x,y){
@@ -52,7 +108,19 @@ for(const [w,h] of sizes){
   for(let i=0;i<=1040;i++){
    const t=i/100,p=studio.render(t);frameCount++;
    assert.equal(p.width,w);assert.equal(p.height,h,'Boot layout must not resize during scroll');
-   const distance=camera.position.distanceTo(new THREE.Vector3(-.34,2.075,-.726));
+   const distance=camera.position.distanceTo(center);
+   if(i===0&&pointer[0]===w/2){
+    for(const x of [-.98,0,.98])for(const y of [-.98,.98]){
+     const frameRay=new THREE.Raycaster();frameRay.setFromCamera(new THREE.Vector2(x,y),camera);
+     assert(frameRay.intersectObject(scene,true).some(hit=>hit.distance<camera.far),`${w}x${h}: opening frame exposes empty exterior at ${x},${y}`);
+    }
+   }
+   if(w===1280&&h===720&&pointer[0]===w/2&&i>=400&&i%25===0){
+    const sightTarget=center.clone().add(new THREE.Vector3(.03,.01,0));
+    const sight=new THREE.Raycaster(camera.position,sightTarget.sub(camera.position).normalize());
+    const hits=sight.intersectObject(scene,true).filter(hit=>!hit.object.material.transparent);
+    assert.equal(hits[0]?.object.name,'display-surface',`The boot camera must clear furnishings at ${t}: ${hits[0]?.object.material.name} / ${hits[0]?.point.toArray()} / camera ${camera.position.toArray()}`);
+   }
    assert(distance<=lastDistance+1e-8,`${w}x${h} camera retreats at ${t}`);lastDistance=distance;
    const scales=[];
    for(const [x,y] of [[.5,.5],[.2,.2],[.8,.2],[.2,.8],[.8,.8]])scales.push(...scaleAt(p,w*x,h*y));
@@ -63,8 +131,8 @@ for(const [w,h] of sizes){
     });previous=scales;
    }
    assert(p.points.flat().every(Number.isFinite));frames.push(p.transform);
-   const monitor=scene.children.find(o=>o.userData?.led&&o.position.x===-.34);
-   assert.equal(monitor.children[1].scale.y,1);assert.equal(monitor.children[1].geometry.parameters.height,.96);
+   const display=scene.getObjectByName('display-surface');
+   assert.equal(display.scale.y,1);assert.equal(display.geometry.parameters.height,model.screen.height);
    if(i===1040){
     const corners=[[0,0],[w,0],[w,h],[0,h]];
     const error=Math.max(...p.points.flatMap((pt,j)=>pt.map((v,k)=>Math.abs(v-corners[j][k]))));
@@ -133,5 +201,19 @@ scroller.scrollTop=scroller.scrollHeight-scroller.clientHeight;run('tickOpening(
  // WebGL loss mid-intro retains current time and hands off to scroll boot.
  appContext.navigator.connection={};appWindow.createWorkspaceScene=(_,callbacks)=>{appContext.failScene=callbacks.onFailure;return {render(){return {transform:'projection'};},dispose(){}};};
  await run('startIntro()');scroller.scrollTop=9/14.8*(scroller.scrollHeight-scroller.clientHeight);run('tickOpening(1);failScene();tickOpening(2)');assert.equal(Number($('#boot').dataset.elapsed),9);assert.equal(run('opening.start'),4);assert.equal(run('studio'),null);
+ // Texture decoding is asynchronous. Skipping while it is pending must
+ // dispose the late scene and must never restart the intro over the desktop.
+ appWindow.WorkspaceModelData={version:5};
+ let finishScene,lateDisposals=0;
+ appWindow.createWorkspaceScene=()=>new Promise(resolve=>{finishScene=resolve;});
+ const pendingIntro=run('startIntro()');run('enterDesktop()');
+ finishScene({dispose(){lateDisposals++;}});await pendingIntro;
+ assert.equal(lateDisposals,1);assert.equal(run('phase'),'desktop');assert.equal(run('studio'),null);
+ delete appWindow.WorkspaceModelData;
+ appContext.loadClassic=async()=>{throw Error('Missing model bundle');};
+ await run('startIntro()');
+ assert.equal(run('studio'),null);assert.equal(run('opening.start'),4,'Missing set uses lightweight boot');
  console.log('PASS: BIOS stages, reverse scrolling, pause, resize, completion, skip/replay, reduced motion, save-data fallback and WebGL context loss.');
+})().catch(error=>{console.error(error);process.exitCode=1;});
+
 })().catch(error=>{console.error(error);process.exitCode=1;});

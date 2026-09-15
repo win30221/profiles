@@ -39,7 +39,7 @@ function boot({idb=db,saved,blockedSettings=false,url='https://workspace.test/#t
  await a.command('write /missing/file.txt nope');assert.match(a.$('.terminal-output').textContent,/Parent folder/);
  await a.command('touch Case.txt');assert.match(a.$('.terminal-output').textContent,/already exists/);assert.match(a.os.get('Case.txt').text,/Hello/);
  await a.command('open Case.txt');assert.equal(a.$('#file-text').value,a.os.get('Case.txt').text);
- a.input('#file-text','Unsaved draft');await a.command('write Case.txt "other value"');assert.match(a.$('.terminal-output').textContent,/unsaved changes/);assert.equal(a.$('#file-text').value,'Unsaved draft');
+ a.input('#file-text','Unsaved draft');await a.command('open Case.txt');assert.equal(a.$('#file-text').value,'Unsaved draft');await a.command('write Case.txt "other value"');assert.match(a.$('.terminal-output').textContent,/unsaved changes/);assert.equal(a.$('#file-text').value,'Unsaved draft');
  const editor=a.$('#file-text');a.click('[data-window="files"] [data-window-action="close"]');await a.command('files');assert.equal(a.$('#file-text'),editor);assert.equal(editor.value,'Unsaved draft');
  a.$('#file-editor').dispatchEvent(new a.w.Event('submit',{bubbles:true,cancelable:true}));await pause();await pause();assert.equal(a.os.get('Case.txt').text,'Unsaved draft');
  await a.command('write Case.txt "Synchronized"');assert.equal(editor.value,'Synchronized');

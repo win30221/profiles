@@ -1,0 +1,36 @@
+{
+  "sourceFanTriangles": 1691123,
+  "sourceTriangles": 1668122,
+  "retainedTriangles": 1610570,
+  "excludedTriangles": 57552,
+  "triangles": 1610572,
+  "decimation": false,
+  "geometryEncoding": "deflate-float32",
+  "geometryBytes": 81434980,
+  "compressedGeometryBytes": 29615790,
+  "maxTextureSize": 2048,
+  "textureQuality": {
+    "color": 88,
+    "normal": 95
+  },
+  "drawMeshes": 118,
+  "textures": 32,
+  "bytes": 57118116,
+  "screen": {
+    "center": [
+      0,
+      1.0052780458412172,
+      0
+    ],
+    "width": 0.6408602142333985,
+    "height": 0.30536180317401884
+  },
+  "missingTextures": [
+    "Untitled-354.jpg",
+    "4K-ps5_controller_texture_normal.png",
+    "BOTAO1 - Copia.jpg",
+    "Untitled-3.jpg",
+    "WoodFloor041_2K_NormalDX.png",
+    "Fabric019_4K_NormalGL.png"
+  ]
+}
