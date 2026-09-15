@@ -4,14 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111412">
-  <meta name="description" content="Hugo — Backend Engineer and Engineering Manager. Enter a digital workspace to explore backend systems, architecture, Golang, databases, and engineering leadership.">
+  <meta name="description" content="Hugo — Backend Engineer and Engineering Manager. Enter a digital workspace to explore professional experience, Golang backend systems, project case studies, and engineering leadership.">
   <title>HUGO OS — An engineer's workspace</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260915-realistic-boot-2">
+  <link rel="stylesheet" href="styles.css?v=20260915-bilingual-profile-1">
   <link rel="stylesheet" href="os.css?v=20260914-2">
+  <script src="profile-content.js?v=20260915-1" defer></script>
   <script src="os.js?v=20260914-2" defer></script>
-  <script src="app.js?v=20260915-realistic-boot-2" defer></script>
+  <script src="app.js?v=20260915-bilingual-profile-1" defer></script>
 </head>
 <body class="intro-active">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -52,14 +53,13 @@
     <header class="os-menubar">
       <button class="os-brand" data-action="home" aria-label="Show desktop"><span class="brand-symbol">H</span> HUGO OS</button>
       <span id="active-app-label" class="os-active-label">Desktop</span>
-      <div class="os-system"><span class="os-visitor"><span data-icon="user"></span> Visitor</span><button class="system-settings" data-app="settings" aria-label="Open settings" title="Settings"><span data-icon="settings"></span></button><span class="os-location">Taipei</span><time id="clock">--:--</time></div>
+      <div class="os-system"><span class="os-visitor"><span data-icon="user"></span> <span id="visitor-label">Visitor</span></span><button id="language-toggle" class="language-toggle" data-action="language" aria-label="切換至中文">中</button><button class="system-settings" data-app="settings" aria-label="Open settings" title="Settings"><span data-icon="settings"></span></button><span class="os-location">Taipei</span><time id="clock">--:--</time></div>
     </header>
     <main id="workspace" class="os-workspace" tabindex="-1" aria-label="Hugo desktop">
       <nav class="desktop-shortcuts" aria-label="Desktop shortcuts">
-        <button data-app="browser"><span class="shortcut-art" data-icon="globe"></span><span>Browser</span></button>
-        <button data-app="projects"><span class="shortcut-art folder-art" data-icon="folder"></span><span>Projects</span></button>
+        <button data-app="welcome"><span class="shortcut-art" data-icon="home"></span><span id="shortcut-welcome">Start here</span></button>
+        <button data-app="projects"><span class="shortcut-art folder-art" data-icon="folder"></span><span id="shortcut-projects">Case studies</span></button>
         <button data-app="resume"><span class="shortcut-art paper-art" data-icon="file"></span><span>Resume.pdf</span></button>
-        <button data-app="files"><span class="shortcut-art" data-icon="folder"></span><span>Files</span></button>
       </nav>
       <div class="wallpaper-signature" aria-hidden="true"><span>H</span><small>PERSONAL WORKSPACE</small></div>
       <div class="desktop-caption mono">BACKEND ENGINEERING<br>AND THE PEOPLE BEHIND IT</div>
@@ -68,7 +68,7 @@
     <section id="launcher" class="os-launcher" aria-labelledby="launcher-title" hidden>
       <div class="launcher-heading"><span><strong id="launcher-title">Applications</strong><small>Hugo’s workspace</small></span><button data-action="launcher-close" aria-label="Close applications"><span data-icon="close"></span></button></div>
       <nav id="app-nav" class="launcher-apps" aria-label="All applications"></nav>
-      <button id="replay-intro" class="launcher-replay"><span data-icon="replay"></span> Revisit the workspace</button>
+      <div class="launcher-power-row"><button id="shutdown-os" class="launcher-power" aria-label="Shut down"><span data-icon="power"></span> Shut down</button></div>
     </section>
     <footer class="os-dock" aria-label="Taskbar">
       <button id="launcher-toggle" class="dock-start" data-action="launcher" aria-label="Applications" aria-expanded="false" aria-controls="launcher"><span class="brand-symbol">H</span><span class="dock-label">Apps</span></button>
@@ -77,6 +77,6 @@
     </footer>
   </div>
   <div id="toast" class="toast" role="status"></div>
-  <noscript><main class="no-script"><h1>Hugo — Backend Engineer / Engineering Manager</h1><p>10+ years in software development. 8+ years in Golang. 5+ years in team management.</p><p>Expertise: Golang, MySQL, Redis, RabbitMQ, Docker, Kubernetes, GCP, and system design.</p><p>Please enable JavaScript to explore the interactive workspace.</p></main></noscript>
+  <noscript><main class="no-script"><h1>Hugo（蕭宏輝）— 後端工程師／工程管理者</h1><p>10+ 年軟體開發、8+ 年 Golang、5+ 年團隊管理經驗。</p><p>專長包含 Golang、MySQL、Redis、RabbitMQ、Docker、Kubernetes、GCP 與系統設計。</p><p>請啟用 JavaScript 以瀏覽互動式中英文履歷。</p><hr><p lang="en">Backend engineer and engineering manager with 10+ years in software development, 8+ years in Golang, and 5+ years in team management. Enable JavaScript to explore the bilingual workspace.</p></main></noscript>
 </body>
 </html>

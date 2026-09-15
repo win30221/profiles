@@ -2,7 +2,7 @@
 'use strict';
 window.HugoOS = (() => {
   const KEY = 'hugo-os.settings.v1';
-  const defaults = {version:1,theme:'dark',accent:'forest',wallpaper:'forest',fit:'cover',shortcuts:true,skipIntro:false,reduceMotion:false,hour12:false,seconds:false,restoreWindows:false,pinned:['projects','architecture','terminal','resume']};
+  const defaults = {version:1,theme:'dark',accent:'forest',wallpaper:'forest',fit:'cover',shortcuts:true,skipIntro:false,reduceMotion:false,hour12:false,seconds:false,restoreWindows:false,pinned:['welcome','projects','resume']};
   const wallpapers = {forest:"url('assets/desktop-wallpaper.png')",dusk:'linear-gradient(135deg,#161c35 0%,#4d385d 52%,#b17d72 100%)',ocean:'radial-gradient(ellipse at 80% 20%,#456a77,transparent 55%),linear-gradient(140deg,#081e29,#213d49)',graphite:'linear-gradient(145deg,#111315 20%,#3d4247 65%,#171a1d)'};
   const accents = {forest:['#c3dc9b','#38541e'],blue:['#a6ceff','#1d4f87'],rose:['#f1b6c6','#84324c']};
   let settings = {...defaults,pinned:[...defaults.pinned]}, settingsSaved = true;
@@ -13,7 +13,7 @@ window.HugoOS = (() => {
       if(value[key]!==undefined){if(!values.includes(value[key]))throw Error(`Invalid ${key}.`);result[key]=value[key];}
     }
     for(const key of ['shortcuts','skipIntro','reduceMotion','hour12','seconds','restoreWindows'])if(value[key]!==undefined){if(typeof value[key]!=='boolean')throw Error(`Invalid ${key}.`);result[key]=value[key];}
-    if(value.pinned!==undefined){if(!Array.isArray(value.pinned)||value.pinned.length>13||value.pinned.some(id=>!['about','experience','projects','architecture','database','terminal','skills','resume','contact','browser','files','settings'].includes(id)))throw Error('Invalid pinned apps.');result.pinned=[...new Set(value.pinned)];}
+    if(value.pinned!==undefined){const known=['welcome','about','experience','projects','terminal','skills','resume','contact','browser','files','settings'],legacy=[...known,'architecture','database'];if(!Array.isArray(value.pinned)||value.pinned.length>13||value.pinned.some(id=>!legacy.includes(id)))throw Error('Invalid pinned apps.');result.pinned=[...new Set(value.pinned)].filter(id=>known.includes(id));}
     return result;
   }
   try {const saved=localStorage.getItem(KEY);if(saved)settings=validateSettings(JSON.parse(saved));}catch{settingsSaved=false;}
@@ -112,8 +112,8 @@ window.HugoOS = (() => {
     const url=URL.createObjectURL(file);try{await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>image.width*image.height>32000000?reject(Error('Image is too large. Choose one under 32 megapixels.')):resolve();image.onerror=()=>reject(Error('This image could not be opened.'));image.src=url;});await persist('wallpaper',file);}catch(error){URL.revokeObjectURL(url);throw error;}
     if(customURL)URL.revokeObjectURL(customURL);customURL=url;saveSettings({wallpaper:'custom'});message('settings',storageMode==='saved'?'Custom wallpaper saved.':'Image applied for this session only.');
   }
-  const shellHelp='Hugo Shell — commands operate this browser workspace.\n\n  ls [path]                  List files\n  pwd / cd [path]             Show / change folder\n  cat <file>                 Read text\n  mkdir <path>               Create a folder\n  touch <file>               Create an empty file\n  write <file> "text"         Save text (replaces contents)\n  open <app | file | URL>    Open an app, file or website\n  download <file>            Export a text file\n  theme dark|light|system    Change appearance\n  wallpaper forest|dusk|ocean|graphite\n  settings / files / browser Open workspace apps\n  date / echo / history / clear\n\nPortfolio: whoami, about, experience, projects, skills, architecture, database, resume, contact\nTab completes commands and paths. Use quotes around paths with spaces.\nThis is a browser workspace shell; bash, npm and host OS commands are not available.';
-  const commands=['help','ls','pwd','cd','cat','mkdir','touch','write','open','download','theme','wallpaper','settings','files','browser','date','echo','history','clear','whoami','about','experience','projects','skills','architecture','database','resume','contact'];
+  const shellHelp='Hugo Shell — commands operate this browser workspace.\n\n  ls [path]                  List files\n  pwd / cd [path]             Show / change folder\n  cat <file>                 Read text\n  mkdir <path>               Create a folder\n  touch <file>               Create an empty file\n  write <file> "text"         Save text (replaces contents)\n  open <app | file | URL>    Open an app, file or website\n  download <file>            Export a text file\n  theme dark|light|system    Change appearance\n  wallpaper forest|dusk|ocean|graphite\n  settings / files / browser Open workspace apps\n  date / echo / history / clear\n\nPortfolio: whoami, about, experience, projects, skills, resume, contact\nTab completes commands and paths. Use quotes around paths with spaces.\nThis is a browser workspace shell; bash, npm and host OS commands are not available.';
+  const commands=['help','ls','pwd','cd','cat','mkdir','touch','write','open','download','theme','wallpaper','settings','files','browser','date','echo','history','clear','whoami','about','experience','projects','skills','resume','contact'];
   function execute(raw){
     if(!raw.trim())return;if(!windows.has('terminal'))openApp('terminal');if(shellBusy){terminalHistory.push({type:'output',text:'A command is still running. Try again when it finishes.'});renderApp(null,'terminal');return;}
     let args;try{args=tokenize(raw);}catch(error){terminalHistory.push({type:'command',text:`visitor@hugo:${cwd}$ ${raw}`},{type:'output',text:error.message});renderApp('#terminal-command','terminal');return;}

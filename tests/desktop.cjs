@@ -16,7 +16,7 @@ w.HTMLElement.prototype.setPointerCapture=function(){};
 Object.defineProperty(w,'innerWidth',{value:1440,writable:true});Object.defineProperty(w,'innerHeight',{value:900,writable:true});
 Object.defineProperties(d.querySelector('#window-layer'),{clientWidth:{get:()=>w.innerWidth},clientHeight:{get:()=>w.innerHeight-140}});
 w.structuredClone=structuredClone;
-w.eval(['os.js','app.js'].map(file=>fs.readFileSync(path.join(root,file),'utf8')).join('\n'));
+w.eval(['profile-content.js','os.js','app.js'].map(file=>fs.readFileSync(path.join(root,file),'utf8')).join('\n'));
 const $=selector=>{const el=d.querySelector(selector);assert(el,`Missing ${selector}`);return el;};
 const click=selector=>$(selector).click();
 const pane=id=>$(`[data-window="${id}"]`);
@@ -26,14 +26,15 @@ const submit=value=>{const input=$('#terminal-command');input.value=value;$('#te
 const hashChanged=()=>new Promise(resolve=>w.addEventListener('hashchange',resolve,{once:true}));
 (async()=>{
  assert.deepEqual(visible(),['welcome']);assert.equal(d.querySelector('dialog'),null,'Desktop apps must not share a modal');
- click('.welcome-actions [data-app="projects"]');
- click('[data-select-project="2"]');click('[data-open-project="2"]');
+ assert.match(pane('welcome').textContent,/Reliable backend systems/);assert.doesNotMatch(pane('welcome').textContent,/Selected impact/);assert.match(pane('welcome').textContent,/National Yunlin/);
+ click('#language-toggle');assert.equal(d.documentElement.lang,'zh-TW');assert.match(pane('welcome').textContent,/打造可靠的後端系統/);assert.doesNotMatch(pane('welcome').textContent,/關鍵成果/);assert.equal($('#shutdown-os').textContent.trim(),'關機');assert.match(w.location.search,/lang=zh-TW/);
+ click('#language-toggle');assert.equal(d.documentElement.lang,'en');assert.match(pane('welcome').textContent,/Reliable backend systems/);assert.equal($('#shutdown-os').textContent.trim(),'Shut down');
+ click('[data-project-launch="2"]');click('[data-open-project="2"]');
  const projects=pane('projects'),content=projects.querySelector('.app-content');content.scrollTop=183;
- assert.match(content.textContent,/Real-time game platform/);
- click('[data-dock-app="architecture"]');click('[data-select-node="mysql"]');
- click('[data-dock-app="terminal"]');
+ assert.match(content.textContent,/Real-time video/);assert.equal(content.querySelector('[data-app="architecture"]'),null);assert.equal(d.querySelector('#app-nav [data-app="architecture"]'),null);assert.equal(d.querySelector('#app-nav [data-app="database"]'),null);
+ click('#launcher-toggle');click('#app-nav [data-app="terminal"]');
  const terminal=pane('terminal');$('#terminal-command').value='unfinished draft';
- assert.equal(visible().length,4,'Welcome, projects, architecture and terminal coexist');
+ assert.equal(visible().length,3,'Welcome, projects and terminal coexist');
  click('[data-window="terminal"] [data-window-action="minimize"]');assert(terminal.hidden);
  click('[data-dock-app="terminal"]');assert.equal($('#terminal-command').value,'unfinished draft');
  assert.equal(projects.querySelector('.app-content'),content,'Opening other apps preserves project DOM');assert.equal(content.scrollTop,183);
@@ -43,7 +44,7 @@ const hashChanged=()=>new Promise(resolve=>w.addEventListener('hashchange',resol
  key($('#terminal-command'),'ArrowUp');assert.match($('#terminal-command').value,/<img/);
  submit('clear');assert(!terminal.textContent.includes('Command not found'));
  click('[data-window="terminal"] [data-window-action="close"]');assert(terminal.hidden);
- click('[data-dock-app="terminal"]');assert.equal(d.querySelectorAll('[data-window="terminal"]').length,1,'Singleton reopen');
+ click('#launcher-toggle');click('#app-nav [data-app="terminal"]');assert.equal(d.querySelectorAll('[data-window="terminal"]').length,1,'Singleton reopen');
  const termInput=$('#terminal-command');termInput.value='draft after close';
  click('[data-window="terminal"] [data-window-action="maximize"]');assert(terminal.classList.contains('is-maximized'));
  click('[data-window="terminal"] [data-window-action="maximize"]');assert(!terminal.classList.contains('is-maximized'));
@@ -55,15 +56,15 @@ const hashChanged=()=>new Promise(resolve=>w.addEventListener('hashchange',resol
  click('[data-window="terminal"] [data-window-action="right"]');assert(parseFloat(terminal.style.left)>700);
  key(terminal.querySelector('.window-resize'),'ArrowLeft');assert(parseFloat(terminal.style.width)<702);
  click('[data-action="home"]');assert.equal(visible().length,0);
- click('[data-action="home"]');assert.equal(visible().length,4);assert.equal($('#terminal-command').value,'draft after close');
+ click('[data-action="home"]');assert.equal(visible().length,3);assert.equal($('#terminal-command').value,'draft after close');
  click('#launcher-toggle');assert(!$('#launcher').hidden);key(d.activeElement,'Escape');assert($('#launcher').hidden);assert.equal(d.activeElement,$('#launcher-toggle'));
- for(const id of ['about','experience','database','skills','resume','contact']){
+ for(const id of ['about','experience','skills','resume','contact']){
    click('#launcher-toggle');click(`#app-nav [data-app="${id}"]`);assert(!pane(id).hidden);assert(pane(id).querySelector('.app-content').textContent.length>30);
  }
  click('[data-window="contact"] [data-window-action="close"]');assert(!visible().includes('contact'));
  click('[data-dock-app="projects"]');click('[data-project-back]');click('[data-project-filter="portfolio"]');
  assert.equal(d.querySelectorAll('.file-row').length,1);assert.match($('.file-preview').textContent,/HUGO OS/);
- click('[data-project-filter="backend"]');assert.equal(d.querySelectorAll('.file-row').length,4);
+ click('[data-project-filter="backend"]');assert.equal(d.querySelectorAll('.file-row').length,5);assert.match(d.querySelector('.file-list').textContent,/Auction bidding system/);
  const ids=[...d.querySelectorAll('[id]')].map(el=>el.id);assert.equal(new Set(ids).size,ids.length,'No duplicate IDs across open apps');
  // Narrow mode changes visibility, never discards app state.
  w.innerWidth=375;w.innerHeight=667;w.dispatchEvent(new w.Event('resize'));assert.deepEqual(visible(),['projects']);
@@ -71,13 +72,15 @@ const hashChanged=()=>new Promise(resolve=>w.addEventListener('hashchange',resol
  click('[data-window="terminal"] .mobile-back');assert.equal(visible().length,0);click('[data-dock-app="projects"]');assert.deepEqual(visible(),['projects']);
  w.innerWidth=1440;w.innerHeight=900;w.dispatchEvent(new w.Event('resize'));assert(visible().length>1);
  // Explicit app navigation is reversible with browser history.
- click('[data-dock-app="architecture"]');click('[data-dock-app="resume"]');
- let changed=hashChanged();w.history.back();await changed;assert.equal(w.location.hash,'#architecture');assert.equal($('#active-app-label').textContent,'Architecture');
+ click('#launcher-toggle');click('#app-nav [data-app="about"]');click('[data-dock-app="resume"]');
+ let changed=hashChanged();w.history.back();await changed;assert.equal(w.location.hash,'#about');assert.equal($('#active-app-label').textContent,'About Hugo');
+ changed=hashChanged();w.location.hash='#architecture';await changed;assert.equal(w.location.hash,'#projects');assert.equal($('#active-app-label').textContent,'Case Studies');
+ changed=hashChanged();w.location.hash='#database';await changed;assert.equal(w.location.hash,'#projects');assert.equal($('#active-app-label').textContent,'Case Studies');
  key(d.body,'k',{ctrlKey:true});assert.equal($('#active-app-label').textContent,'Terminal');
  key($('#terminal-command'),'Escape');assert(pane('terminal').hidden);
- // Replaying hides the whole shell and retains application DOM for return.
- const before=content;click('#launcher-toggle');click('#replay-intro');assert($('#desktop').inert);motion.matches=true;motion.listeners.forEach(fn=>fn());assert(!$('#desktop').inert);assert.equal(pane('projects').querySelector('.app-content'),before);
+ // Shutting down hides the whole shell, returns to the intro, and retains application DOM for re-entry.
+ const before=content;click('#launcher-toggle');assert.equal($('#shutdown-os').textContent.trim(),'Shut down');click('#shutdown-os');assert($('#desktop').inert);motion.matches=true;motion.listeners.forEach(fn=>fn());assert(!$('#desktop').inert);assert.equal(pane('projects').querySelector('.app-content'),before);
  assert.deepEqual(errors,[]);
- console.log('PASS: real DOM startup, all apps, concurrent windows, state/draft preservation, commands, escaping, focus, drag bounds, tiling, resizing, launcher, mobile switching, history and intro replay.');
+ console.log('PASS: real DOM startup, all apps, concurrent windows, state/draft preservation, commands, escaping, focus, drag bounds, tiling, resizing, launcher, mobile switching, history and OS shutdown.');
  dom.window.close();
 })().catch(error=>{console.error(error);dom.window.close();process.exitCode=1;});

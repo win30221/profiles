@@ -28,20 +28,21 @@ Three.js 和字型均已放在本地，桌面不依賴 CDN、後端 API 或 ES m
 
 使用已提供的 `.github/workflows/deploy.yml`：在 repository 的 **Settings → Pages** 將 Source 設為 **GitHub Actions**。workflow 只整理並發布靜態檔案，不執行 npm、Node.js、後端 API 或資料庫；同時排除開發用來源模型與雙擊用離線模型包。不要改用 **Deploy from a branch**，否則無法套用這份精簡與排除規則。
 
-網站全數使用相對路徑，因此同時支援 `username.github.io` 和 `username.github.io/repository/`。應用程式採 `#projects`、`#architecture` 等 hash 導覽，不需要伺服器重寫規則。預設監聽 `main`；若使用其他分支，修改 workflow 的 branches。
+網站全數使用相對路徑，因此同時支援 `username.github.io` 和 `username.github.io/repository/`。應用程式採 `#projects`、`#resume` 等 hash 導覽，不需要伺服器重寫規則。舊的 `#architecture` 連結會轉向專案案例。預設監聽 `main`；若使用其他分支，修改 workflow 的 branches。
 本次沒有替你 push repository 或公開發佈。
 
 ## 個人資料
 
+建議先填寫 [`PROFILE-CONTENT-TEMPLATE.md`](PROFILE-CONTENT-TEMPLATE.md)。只需提供中文原始內容；網站版的中文濃縮、英文改寫、欄位整理與雙語切換資料會再由此產生。
+
 - `app.js` 頂端的 `PROFILE`：姓名、職稱、Email、GitHub、LinkedIn。
-- `app.js` 的 `YEARS`：工作時間軸。現有年份對照為示範內容，須改成真實公司、職稱、日期。
-- `app.js` 的 `PROJECTS`：專案問題、架構、角色、技術、挑戰、解法與結果。
+- `profile-content.js`：網站正式使用的繁體中文與英文內容，以及語言偏好處理。
 - `app.js` 的 `SKILLS`：技術領域。
 - `app.js` 的 `renderWelcome()`：歡迎視窗的介紹與年資。
 - `index.html`：桌面捷徑、系統列與 SEO metadata。
-- `assets/hugo-profile-summary.pdf`：目前為僅包含已提供資訊的摘要草稿。換成完整履歷時，也請更新 `app.js` 的 `renderResume()` 預覽內容及說明。
+- `assets/hugo-resume-current.pdf`：目前網站提供下載的中文履歷來源檔。
 
-前四個專案為明確標記的架構示範，不宣稱是真實客戶專案；第五個是本網站。公司、績效數字及聯絡地址均未捏造。GitHub / LinkedIn 未填寫時會開啟聯絡面板，避免導向無關帳號。
+前四個專案整理自 2026 年 9 月提供的履歷，第五個是本網站；保密公司維持匿名，未提供的成果數字會明確標示待補。Email 使用履歷中的公開地址，GitHub / LinkedIn 未填寫時不會導向無關帳號。
 
 ## 互動
 
@@ -52,19 +53,20 @@ Three.js 和字型均已放在本地，桌面不依賴 CDN、後端 API 或 ES m
 - 抵達主螢幕時，同一 HTML 開機畫面解除已對齊視窗的透視變形；不重設文字、不重跑進度、不淡出黑幕。
 - 約 60% 捲動位置抵達螢幕；完整啟動流程分成韌體 POST、boot manager／kernel、系統服務、workspace session 四個緊湊階段，階段間連續切換、不插入黑場。約 91% 顯示 HUGO OS，100% 進入桌面。進入桌面前可往回捲回工作室。
 - `styles.css` 的 `.intro-scroll-distance` 控制總捲動距離；`app.js` 的 `OPENING` 定義各階段位置，實際進度為「捲軸比例 × OPENING.desktop」。快速拖曳捲軸會立即跳到對應畫面，不強迫補播中間動畫。
-- Skip intro 可直接進入桌面；Revisit the workspace 可重播整段流程。
+- Skip intro 可直接進入桌面；啟動器的「關機 / Shut down」會結束桌面工作階段並回到完整開場動畫。
 - 視窗縮放與手機橫直向旋轉會保留目前捲動比例，不因捲動距離改變而跳過開場。
 - 動畫後進入可自訂桌布、桌面捷徑、工作列與 Welcome 視窗。桌面不捲動，各 app 內容獨立捲動。
 - 每個 app 為独立單一實例；在桌面開啟另一 app 不會覆蓋前一個。點擊視窗置頂，最小化／關閉後重開保留同次頁面內的選擇、閱讀位置與輸入草稿。重新整理會建立新視窗工作階段；已儲存的虛擬檔案、書籤、桌布與設定仍保留，未儲存草稿不會持久保存。
 - 桌面（≥1100px）可拖動標題列、最大化／還原，右上「···」提供左右並排與置中；右下角可拖曳或用方向鍵調整大小。
 - 工作列顯示開啟中／作用中／最小化狀態。點作用中 app 可最小化；Desktop 切換隱藏／恢復全部視窗。Apps 開啟完整應用程式清單。
-- 小於 1100px 改為單一作用中視窗；手機提供返回桌面控制和滿版 app，切換不遺失狀態。Welcome 留在捷徑下方。
-- Projects 採檔案總管清單，可切換 Backend／Portfolio 分類、選取預覽、開啟案例；四個概念案例仍清楚標示。
-- Architecture 使用可點擊的參考架構節點，與作品、終端機分別保留內容。
+- Profile Overview 是可由上往下完整閱讀的主履歷：摘要、職涯、專案、技能、學歷與聯絡資訊集中在同一個視窗；其他 App 只作深入閱讀。
+- 小於 1100px 改為單一作用中視窗；手機提供返回桌面控制和滿版 app，切換不遺失狀態。Profile Overview 會直接滿版顯示，優先呈現履歷內容。
+- Projects 採檔案總管清單，可切換 Backend／Portfolio 分類、選取預覽、開啟案例；真實專案與個人作品會清楚標示。
+- 系統列提供 `中 / EN` 切換；初次開啟依網址、既有偏好或瀏覽器語言決定，手動切換後寫入 localStorage，並同步更新 `?lang=zh-TW` 或 `?lang=en` 以便分享。切換不會關閉現有視窗或重設專案選擇。
 - 所有 application 都可用鍵盤開啟；Escape 優先關閉啟動器或視窗排列選單，再關閉作用中視窗。一般視窗沒有 modal 遮罩，也不鎖住整頁焦點。
-- `#projects`、`#architecture`、`#resume`、`#welcome` 可直達；明確 app 導覽支援瀏覽器上一頁／下一頁。
+- `#projects`、`#resume`、`#welcome` 可直達；明確 app 導覽支援瀏覽器上一頁／下一頁。
 - 終端機導航會開啟／聚焦目的 app，原終端機繼續保留。
-- 終端機：`help`、`whoami`、`about`、`experience`、`projects`、`skills`、`architecture`、`database`、`resume`、`contact`、`clear`。
+- 終端機：`help`、`whoami`、`about`、`experience`、`projects`、`skills`、`resume`、`contact`、`clear`。
 - Ctrl / Command + K 開啟終端機；上下方向鍵查閱輸入歷史。
 - 手機與窄視窗同樣播放完整 3D 工作室開場，不再以 700px 寬度跳過動畫。省流量 / 低記憶體裝置仍不下載 3D，改用滑動控制的 BIOS 精簡版本，滑到底才進桌面；也可點擊底部提示或跳過。
 - 主螢幕依模型實際顯示面約 0.6409 × 0.3054 公尺的橫向比例；同一份視窗尺寸的 BIOS 排版，從開始就投影到螢幕中央的固定顯示範圍。捲動途中不改變顯示範圍或內容縮放，僅由鏡頭持續靠近到全畫面，避免先放大過頭再縮回。內容只在視窗尺寸或開機狀態改變時重新計算排版，螢幕其餘區域底色與 HTML 畫面一致。

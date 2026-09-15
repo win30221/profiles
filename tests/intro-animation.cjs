@@ -199,7 +199,7 @@ const loaderContext=vm.createContext({window:loaderWindow,loadClassic:async()=>{
 vm.runInContext(loaderSource,loaderContext);
 assert.equal((await vm.runInContext('loadRoomManifest()',loaderContext)).version,6);assert.equal(offlineScriptLoads,1);
 const appContext=vm.createContext({$,document:{hidden:false,body:new Element(),createElement:()=>new Element(),querySelectorAll(selector){return selector==='.boot-stage-rail span'?Array.from({length:4},()=>new Element()):[];}},window:appWindow,navigator:{},reducedMotion:{matches:false},requestAnimationFrame(){return 1;},cancelAnimationFrame(){},loadClassic:async()=>{},loadRoomManifest:async()=>model,showSceneLoading(){},hideSceneLoading(){},AbortController,closeApp(){},console});
-vm.runInContext(`let phase='intro',opening=null,openingFrame=0,sceneCleanup=null,sceneLoadController=null,studio=null,introRun=0;`+appSource.slice(appSource.indexOf('// One scroll position'),appSource.indexOf("$('#app-nav').innerHTML=")),appContext);
+vm.runInContext(`let phase='intro',opening=null,openingFrame=0,sceneCleanup=null,sceneLoadController=null,studio=null,introRun=0;`+appSource.slice(appSource.indexOf('// One scroll position'),appSource.indexOf('window.HugoOS?.init();')),appContext);
 const run=code=>vm.runInContext(code,appContext);
 appContext.assertSceneVisible=()=>assert(!$('#cinematic').classList.contains('hidden'),'Never project from a hidden zero-size scene, including on rewind');
 run(`studio={render(){assertSceneVisible();return {transform:'projection'};},reduceQuality(){}};beginClock();`);
@@ -219,7 +219,7 @@ for(const time of [0,2.6,3.65,4.15,4.45,7.2,8.05,10.399,10.4,11.55,13.85,15.25,1
 const resizeSource=appSource.slice(appSource.indexOf("window.addEventListener('resize',"),appSource.indexOf("window.addEventListener('hashchange',"));
 appContext.dialog={open:false};appWindow.addEventListener=(_,fn)=>{appContext.resizeIntro=fn;};run(resizeSource);
 const beforeResize=Number($('#boot').dataset.elapsed);scroller.clientHeight=375;scroller.scrollHeight=1425;appWindow.innerWidth=667;appWindow.innerHeight=375;run('resizeIntro();tickOpening(900001)');assert(Math.abs(Number($('#boot').dataset.elapsed)-beforeResize)<.001);
-// Scroll completion releases the scene; replay starts at zero even on phones.
+// Scroll completion releases the scene; shutdown and re-entry start at zero even on phones.
 scroller.scrollTop=scroller.scrollHeight-scroller.clientHeight;run('tickOpening(900002)');assert.equal(run('phase'),'desktop');assert.equal($('#desktop').inert,false);assert.equal(run('studio'),null);
 (async()=>{
  appWindow.THREE={};appWindow.createWorkspaceScene=()=>({render(){return {transform:'projection'};},dispose(){}});
@@ -243,7 +243,7 @@ scroller.scrollTop=scroller.scrollHeight-scroller.clientHeight;run('tickOpening(
  appContext.loadRoomManifest=async()=>{throw Error('Missing model bundle');};
  await run('startIntro()');
  assert.equal(run('studio'),null);assert.equal(run('opening.start'),4.15,'Missing set uses lightweight boot');
- console.log('PASS: BIOS stages, reverse scrolling, pause, resize, completion, skip/replay, reduced motion, save-data fallback and WebGL context loss.');
+ console.log('PASS: BIOS stages, reverse scrolling, pause, resize, completion, skip/shutdown, reduced motion, save-data fallback and WebGL context loss.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 })().catch(error=>{console.error(error);process.exitCode=1;});

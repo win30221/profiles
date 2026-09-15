@@ -4,7 +4,7 @@ const {IDBFactory,IDBObjectStore}=require('fake-indexeddb');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const root=path.resolve(__dirname,'..'),source=['os.js','app.js'].map(file=>fs.readFileSync(path.join(root,file),'utf8')).join('\n');
+const root=path.resolve(__dirname,'..'),source=['profile-content.js','os.js','app.js'].map(file=>fs.readFileSync(path.join(root,file),'utf8')).join('\n');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const db=new IDBFactory(),doms=[];
 const pause=()=>new Promise(resolve=>setTimeout(resolve,10));
@@ -46,6 +46,7 @@ function boot({idb=db,saved,blockedSettings=false,url='https://workspace.test/#t
  await a.command('download Case.txt');assert.equal(a.w.lastDownload.name,'Case.txt');
  await a.command('theme light');await a.command('wallpaper ocean');assert.equal(a.d.documentElement.dataset.theme,'light');assert.match(a.$('.os-wallpaper').style.backgroundImage,/radial-gradient/);
  await a.command('theme invalid');assert.equal(a.os.settings.theme,'light');
+ a.os.saveSettings({pinned:['architecture','database','projects']});assert.deepEqual(Array.from(a.os.settings.pinned),['projects'],'Legacy Architecture and Database pins are removed safely');
  await a.command('settings');a.$('[data-setting="seconds"]').checked=true;a.$('[data-setting="seconds"]').dispatchEvent(new a.w.Event('change',{bubbles:true}));assert.match(a.$('#clock').textContent,/\d\d:\d\d:\d\d/);
  a.os.saveSettings({pinned:['files','browser'],shortcuts:false,skipIntro:true,restoreWindows:true});assert(a.$('.desktop-shortcuts').hidden);a.os.saveLayout();
  const saved=a.w.localStorage.getItem('hugo-os.settings.v1');
