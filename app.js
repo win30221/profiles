@@ -70,7 +70,7 @@ const DB_TOPICS = {
 };
 let activeApp = '', selectedProject = 0, selectedYear = '2026', selectedNode = 'services', selectedTopic = 'Index';
 let terminalHistory = [], commandHistory = [], historyIndex = 0, toastTimer;
-let sceneCleanup = null, introRun = 0, phase = 'intro';
+let sceneCleanup = null, sceneLoadController = null, introRun = 0, phase = 'intro';
 let openingFrame = 0, opening = null, studio = null;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -243,6 +243,27 @@ function executePortfolioCommand(raw){const input=raw.trim();if(!input)return;co
  if(destination)openApp(destination);else{openApp('terminal');$('#terminal-command')?.focus({preventScroll:true});}
 }
 function loadClassic(src){return new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(new Error(`Unable to load ${src}`));document.head.appendChild(script);});}
+async function loadRoomManifest(signal){
+  if(window.location?.protocol==='file:'){
+    if(window.WorkspaceModelData?.version!==6)await loadClassic('assets/models/room-scene.js?v=20260915-offline-1');
+    if(window.WorkspaceModelData?.version!==6)throw new Error('Offline room bundle is incompatible');
+    return window.WorkspaceModelData;
+  }
+  const response=await fetch('assets/models/room-scene.json?v=20260915-stream-1',{signal});
+  if(!response.ok)throw new Error(`Room manifest failed (${response.status})`);
+  const data=await response.json();
+  if(data?.version!==6)throw new Error('Room manifest is incompatible');
+  return data;
+}
+function showSceneLoading(label='Preparing 3D workspace…',percent=0){
+  const status=$('#scene-loading');
+  status.hidden=false;$('#scene-loading-label').textContent=label;
+  $('#scene-loading-progress').style.width=`${Math.max(0,Math.min(100,percent))}%`;
+  $('#cinematic').setAttribute('aria-busy','true');
+}
+function hideSceneLoading(){
+  $('#scene-loading').hidden=true;$('#cinematic').removeAttribute('aria-busy');
+}
 // One scroll position, one DOM surface — from the dark room to HUGO OS.
 const OPENING = Object.freeze({
   reducedMotionRate: 4,
@@ -258,6 +279,7 @@ const OPENING = Object.freeze({
 });
 function stopOpening(){
   cancelAnimationFrame(openingFrame);openingFrame=0;
+  sceneLoadController?.abort();sceneLoadController=null;hideSceneLoading();
   sceneCleanup?.();sceneCleanup=null;studio=null;
 }
 function renderBoot(time){
@@ -398,14 +420,22 @@ async function startIntro(){
   if(reducedMotion.matches||window.HugoOS?.settings.reduceMotion){beginClock({instant:true});return;}
   if(simple){beginClock({simple:true});return;}
   try{
+    showSceneLoading();
     if(!window.THREE)await loadClassic('assets/vendor/three.min.js');
     if(run!==introRun||phase!=='intro')return;
-    // The complete local set is required; unavailable assets use simple boot.
-    if(window.WorkspaceModelData?.version!==5)await loadClassic('assets/models/room-scene.js?v=20260915-tv-no-laptop-1');
+    // HTTP uses cacheable binary assets; file:// uses a self-contained bundle
+    // because browsers block fetches for sibling local files.
+    sceneLoadController=new AbortController();
+    window.WorkspaceModelData=await loadRoomManifest(sceneLoadController.signal);
     if(run!==introRun||phase!=='intro')return;
     if(!window.createWorkspaceScene)await loadClassic('scene.js?v=20260915-tv-no-laptop-1');
     if(run!==introRun||phase!=='intro')return;
-    const createdScene=await window.createWorkspaceScene($('#scene-host'),{arrival:OPENING.arrival,onFailure(){
+    const createdScene=await window.createWorkspaceScene($('#scene-host'),{arrival:OPENING.arrival,signal:sceneLoadController.signal,onProgress({stage,loaded,total}){
+      if(run!==introRun||phase!=='intro')return;
+      const percent=stage==='geometry'&&total?5+loaded/total*75:stage==='textures'&&total?80+loaded/total*20:stage==='ready'?100:5;
+      const label=stage==='textures'?`Decoding textures ${loaded}/${total}…`:stage==='ready'?'3D workspace ready':`Loading 3D workspace ${Math.round(percent)}%…`;
+      showSceneLoading(label,percent);
+    },onFailure(){
       if(run!==introRun||phase==='desktop')return;
       // Preserve already-displayed progress if the graphics context is lost.
       const time=Math.max(opening?.time||0,OPENING.bios);
@@ -419,11 +449,13 @@ async function startIntro(){
       }
     }});
     if(run!==introRun||phase!=='intro'){createdScene?.dispose?.();return;}
+    sceneLoadController=null;hideSceneLoading();
     studio=createdScene;
     if(studio?.dispose){sceneCleanup=()=>studio?.dispose();beginClock();}
     else{studio=null;beginClock({simple:true});}
   }catch(error){
     if(run!==introRun||phase==='desktop')return;
+    sceneLoadController=null;hideSceneLoading();
     console.info('Using lightweight startup:',error.message);beginClock({simple:true});
   }
 }

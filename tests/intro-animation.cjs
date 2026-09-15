@@ -16,8 +16,12 @@ class PMREMGenerator{
 const listeners={};
 const window={THREE:{...THREE,WebGLRenderer:Renderer,PMREMGenerator},devicePixelRatio:1,addEventListener(k,fn){listeners[k]=fn;},removeEventListener(){}};
 class ImageStub{set src(value){this.source=value;queueMicrotask(()=>this.onload());}}
-const context=vm.createContext({window,atob,Blob,Response,DecompressionStream,Image:ImageStub,innerWidth:1280,innerHeight:720});
-vm.runInContext(fs.readFileSync(path.join(root,'assets/models/room-scene.js'),'utf8'),context);
+const assetResponse=url=>{
+ const body=fs.readFileSync(path.join(root,url));
+ return new Response(body,{headers:{'content-length':String(body.length)}});
+};
+const context=vm.createContext({window,atob,Blob,Response,DecompressionStream,TransformStream,fetch:async url=>assetResponse(url),Image:ImageStub,innerWidth:1280,innerHeight:720});
+window.WorkspaceModelData=JSON.parse(fs.readFileSync(path.join(root,'assets/models/room-scene.json'),'utf8'));
 vm.runInContext(fs.readFileSync(path.join(root,'scene.js'),'utf8'),context);
 const host={clientWidth:1280,clientHeight:720,appendChild(){}};
 const model=window.WorkspaceModelData;
@@ -27,7 +31,7 @@ window.WorkspaceModelData=model;
 const encodedGeometry=model.geometry;
 model.geometry={...encodedGeometry,codec:'unsupported'};
 await assert.rejects(window.createWorkspaceScene(host,{}),/Unsupported room geometry/);
-model.geometry={...encodedGeometry,data:'AAAA'};
+model.geometry={...encodedGeometry,url:'assets/models/model-stats.json'};
 await assert.rejects(window.createWorkspaceScene(host,{}),'Corrupt compressed geometry must reject before creating GPU resources');
 model.geometry=encodedGeometry;
 const studio=await window.createWorkspaceScene(host,{arrival:10.4});
@@ -155,7 +159,17 @@ host.clientWidth=375;host.clientHeight=667;listeners.resize();assert.equal(studi
 studio.dispose();
 assert.equal(disposedResources.size,liveResources.size,'Release shared GPU resources when leaving the intro');
 studio.dispose(); // Repeated exit/context-loss cleanup remains harmless.
+// A double-clicked index.html cannot fetch sibling files. Its generated,
+// deployment-excluded bundle must carry the same scene without any fetch.
+const offlineContext=vm.createContext({window:{}});
+vm.runInContext(fs.readFileSync(path.join(root,'assets/models/room-scene.js'),'utf8'),offlineContext);
+const offlineModel=offlineContext.window.WorkspaceModelData;
+assert.equal(offlineModel.version,6);assert(offlineModel.geometry.data);assert(!offlineModel.geometry.url);
+assert(Object.values(offlineModel.textures).every(texture=>texture.url.startsWith('data:image/webp;base64,')));
+context.fetch=async()=>{throw new Error('Offline scene must not fetch')};window.WorkspaceModelData=offlineModel;
+const offlineStudio=await window.createWorkspaceScene(host,{arrival:10.4});offlineStudio.render(5);offlineStudio.dispose();
 console.log(`PASS: ${drawCount} mesh batches, ${triangleCount} triangles; all ${liveResources.size} shared resources released.`);
+console.log('PASS: self-contained file:// room bundle requires no fetch.');
 console.log(`PASS: ${sizes.length} viewports, ${frameCount} camera frames, five content positions, three pointer positions; no overshoot or retreat. Handoff error < ${Math.max(maxError,1e-12)} px.`);
 
 // Exercise the production application clock without GPU or browser timers.
@@ -168,9 +182,15 @@ class Element{
 }
 const elements=new Map(),$=selector=>{if(!elements.has(selector))elements.set(selector,new Element());return elements.get(selector);};
 const appWindow={innerWidth:375,innerHeight:667,scrollTo(){}};
-const appContext=vm.createContext({$,document:{hidden:false,body:new Element(),createElement:()=>new Element()},window:appWindow,navigator:{},reducedMotion:{matches:false},requestAnimationFrame(){return 1;},cancelAnimationFrame(){},loadClassic:async()=>{},closeApp(){},console});
 const appSource=fs.readFileSync(path.join(root,'app.js'),'utf8');
-vm.runInContext(`let phase='intro',opening=null,openingFrame=0,sceneCleanup=null,studio=null,introRun=0;`+appSource.slice(appSource.indexOf('// One scroll position'),appSource.indexOf("$('#app-nav').innerHTML=")),appContext);
+const loaderSource=appSource.slice(appSource.indexOf('async function loadRoomManifest'),appSource.indexOf('function showSceneLoading'));
+let offlineScriptLoads=0;
+const loaderWindow={location:{protocol:'file:'}};
+const loaderContext=vm.createContext({window:loaderWindow,loadClassic:async()=>{offlineScriptLoads++;loaderWindow.WorkspaceModelData=offlineModel;},fetch:async()=>{throw new Error('file:// loader must not fetch')}});
+vm.runInContext(loaderSource,loaderContext);
+assert.equal((await vm.runInContext('loadRoomManifest()',loaderContext)).version,6);assert.equal(offlineScriptLoads,1);
+const appContext=vm.createContext({$,document:{hidden:false,body:new Element(),createElement:()=>new Element()},window:appWindow,navigator:{},reducedMotion:{matches:false},requestAnimationFrame(){return 1;},cancelAnimationFrame(){},loadClassic:async()=>{},loadRoomManifest:async()=>model,showSceneLoading(){},hideSceneLoading(){},AbortController,closeApp(){},console});
+vm.runInContext(`let phase='intro',opening=null,openingFrame=0,sceneCleanup=null,sceneLoadController=null,studio=null,introRun=0;`+appSource.slice(appSource.indexOf('// One scroll position'),appSource.indexOf("$('#app-nav').innerHTML=")),appContext);
 const run=code=>vm.runInContext(code,appContext);
 appContext.assertSceneVisible=()=>assert(!$('#cinematic').classList.contains('hidden'),'Never project from a hidden zero-size scene, including on rewind');
 run(`studio={render(){assertSceneVisible();return {transform:'projection'};},reduceQuality(){}};beginClock();`);
@@ -203,14 +223,14 @@ scroller.scrollTop=scroller.scrollHeight-scroller.clientHeight;run('tickOpening(
  await run('startIntro()');scroller.scrollTop=9/14.8*(scroller.scrollHeight-scroller.clientHeight);run('tickOpening(1);failScene();tickOpening(2)');assert.equal(Number($('#boot').dataset.elapsed),9);assert.equal(run('opening.start'),4);assert.equal(run('studio'),null);
  // Texture decoding is asynchronous. Skipping while it is pending must
  // dispose the late scene and must never restart the intro over the desktop.
- appWindow.WorkspaceModelData={version:5};
+ appWindow.WorkspaceModelData={version:6};
  let finishScene,lateDisposals=0;
  appWindow.createWorkspaceScene=()=>new Promise(resolve=>{finishScene=resolve;});
- const pendingIntro=run('startIntro()');run('enterDesktop()');
+ const pendingIntro=run('startIntro()');while(!finishScene)await Promise.resolve();run('enterDesktop()');
  finishScene({dispose(){lateDisposals++;}});await pendingIntro;
  assert.equal(lateDisposals,1);assert.equal(run('phase'),'desktop');assert.equal(run('studio'),null);
  delete appWindow.WorkspaceModelData;
- appContext.loadClassic=async()=>{throw Error('Missing model bundle');};
+ appContext.loadRoomManifest=async()=>{throw Error('Missing model bundle');};
  await run('startIntro()');
  assert.equal(run('studio'),null);assert.equal(run('opening.start'),4,'Missing set uses lightweight boot');
  console.log('PASS: BIOS stages, reverse scrolling, pause, resize, completion, skip/replay, reduced motion, save-data fallback and WebGL context loss.');

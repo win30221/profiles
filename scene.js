@@ -4,28 +4,44 @@
 'use strict';
 window.createWorkspaceScene = async function(host,callbacks) {
   const T=window.THREE,data=window.WorkspaceModelData;
-  if(data?.version!==5)throw new Error('Room scene is unavailable');
+  if(data?.version!==6)throw new Error('Room scene is unavailable');
   function base64Bytes(s){
     if(Uint8Array.fromBase64)return Uint8Array.fromBase64(s);
     const binary=atob(s),bytes=new Uint8Array(binary.length);
     for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
     return bytes;
   }
-  // Native streaming decompression preserves every Float32 value/index and
-  // lets image decoding proceed concurrently. Replays reuse the CPU buffer.
+  // HTTP streams the compact binary. A double-clicked file:// page instead
+  // supplies the same bytes inline because browsers block sibling fetches.
   const geometryReady=data.decodedGeometry?Promise.resolve(data.decodedGeometry):(async()=>{
     if(data.geometry?.codec!=='deflate')throw new Error('Unsupported room geometry');
-    const stream=new Blob([base64Bytes(data.geometry.data)]).stream().pipeThrough(new DecompressionStream('deflate'));
+    let compressedStream;
+    if(data.geometry.data){
+      const bytes=base64Bytes(data.geometry.data);
+      callbacks.onProgress?.({stage:'geometry',loaded:bytes.byteLength,total:bytes.byteLength});
+      compressedStream=new Blob([bytes]).stream();
+    }else{
+      const response=await fetch(data.geometry.url,{signal:callbacks.signal});
+      if(!response.ok||!response.body)throw new Error(`Room geometry failed (${response.status})`);
+      const total=Number(response.headers.get('content-length'))||0;
+      let loaded=0;
+      const progress=new TransformStream({transform(chunk,controller){loaded+=chunk.byteLength;callbacks.onProgress?.({stage:'geometry',loaded,total});controller.enqueue(chunk);}});
+      compressedStream=response.body.pipeThrough(progress);
+    }
+    const stream=compressedStream.pipeThrough(new DecompressionStream('deflate'));
     const buffer=await new Response(stream).arrayBuffer();
     if(buffer.byteLength!==data.geometry.byteLength)throw new Error('Room geometry length mismatch');
     data.decodedGeometry=buffer;return buffer;
   })();
   // Decode self-contained image URLs before the scroll clock starts. Native
   // images are CPU assets; every replay creates and releases its own textures.
-  const imagesReady=Promise.all(Object.entries(data.textures).map(([id,source])=>new Promise((resolve,reject)=>{
-    const img=new Image();img.onload=()=>resolve([id,img]);img.onerror=()=>reject(new Error('Model texture failed: '+id));img.src=source.url;
+  let decodedTextureCount=0;
+  const textureEntries=Object.entries(data.textures);
+  const imagesReady=Promise.all(textureEntries.map(([id,source])=>new Promise((resolve,reject)=>{
+    const img=new Image();img.onload=()=>{decodedTextureCount++;callbacks.onProgress?.({stage:'textures',loaded:decodedTextureCount,total:textureEntries.length});resolve([id,img]);};img.onerror=()=>reject(new Error('Model texture failed: '+id));img.src=source.url;
   })));
   const [geometryBuffer,images]=await Promise.all([geometryReady,imagesReady]);
+  callbacks.onProgress?.({stage:'ready',loaded:1,total:1});
   const decodedImages=new Map(images),resources=new Set();
   const keep=r=>{resources.add(r);return r;};
   const renderer=new T.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});

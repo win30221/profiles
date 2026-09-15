@@ -8,6 +8,9 @@
   "geometryEncoding": "deflate-float32",
   "geometryBytes": 81434980,
   "compressedGeometryBytes": 29615790,
+  "textureBytes": 12987010,
+  "manifestBytes": 314830,
+  "offlineBundleBytes": 57118120,
   "maxTextureSize": 2048,
   "textureQuality": {
     "color": 88,
@@ -15,7 +18,7 @@
   },
   "drawMeshes": 118,
   "textures": 32,
-  "bytes": 57118116,
+  "bytes": 42917630,
   "screen": {
     "center": [
       0,

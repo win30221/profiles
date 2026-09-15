@@ -2,6 +2,22 @@
 
 原生 HTML / CSS / JavaScript 個人作品集，包含 Three.js 3D 工程師工作室開場。
 
+## 新電腦開發環境
+
+需要 Git、Git LFS 與 Node.js 20 以上版本（建議使用 `.nvmrc` 指定的 Node 22）。clone 時必須下載 LFS 素材，不能只複製 Git pointer：
+
+```sh
+git lfs install
+git clone <repository-url>
+cd profile
+git lfs pull
+npm ci
+npm run verify:model-sources
+npm test
+```
+
+`package-lock.json` 固定 Three.js、Sharp 與測試工具版本；`npm run build:model` 可從 `assets/models/sources/gaming-room/` 的完整 OBJ／MTL、BLEND 與原始貼圖重建線上資產及雙擊用離線包。`npm run verify:model-sources` 會逐一核對所有來源檔案的 SHA-256，缺檔、多檔或內容不同都會失敗。
+
 ## 直接開啟
 
 雙擊根目錄的 `index.html`。桌面與內建作品內容不需要 React、Node.js、npm、建置工具或網路；Browser 開啟外部網站需要網路。
@@ -10,21 +26,9 @@ Three.js 和字型均已放在本地，桌面不依賴 CDN、後端 API 或 ES m
 
 ## GitHub Pages
 
-### 最簡單：從分支發佈
+使用已提供的 `.github/workflows/deploy.yml`：在 repository 的 **Settings → Pages** 將 Source 設為 **GitHub Actions**。workflow 只整理並發布靜態檔案，不執行 npm、Node.js、後端 API 或資料庫；同時排除開發用來源模型與雙擊用離線模型包。不要改用 **Deploy from a branch**，否則無法套用這份精簡與排除規則。
 
-1. 將根目錄的六個網站檔案及 `assets/` 上傳到 GitHub repository。
-2. 開啟 repository 的 **Settings → Pages**。
-3. Source 選 **Deploy from a branch**，選擇你的分支及 **/(root)**，然後儲存。
-4. 等待 GitHub 提供網站網址。
-
-根目錄的 `.nojekyll` 可一併上傳。網站全數使用相對路徑，因此同時支援 `username.github.io` 和 `username.github.io/repository/`。
-應用程式採 `#projects`、`#architecture` 等 hash 導覽，不需要伺服器重寫規則。
-
-### 可選：GitHub Actions
-
-已提供 `.github/workflows/deploy.yml`，僅複製静態檔案並發佈，沒有 npm install 或 build。
-在 Settings → Pages 中將 Source 設為 **GitHub Actions** 即可。預設監聽 `main`；若使用其他分支，修改 workflow 的 branches。
-請在「分支發佈」與「Actions」之間擇一。
+網站全數使用相對路徑，因此同時支援 `username.github.io` 和 `username.github.io/repository/`。應用程式採 `#projects`、`#architecture` 等 hash 導覽，不需要伺服器重寫規則。預設監聽 `main`；若使用其他分支，修改 workflow 的 branches。
 本次沒有替你 push repository 或公開發佈。
 
 ## 個人資料
@@ -150,10 +154,10 @@ open https://example.com
 
 ## 完整場景替換（2026-09-14）
 
-已整套採用 **induwarabh — Gaming room**。作者、來源、授權與修改說明見 [assets/models/CREDITS.md](assets/models/CREDITS.md)。依 CGTrader 授權，原始 OBJ／MTL、BLEND 與原尺寸貼圖只保存在授權使用者本機的 `assets/models/sources/gaming-room/`，並由 `.gitignore` 排除，不在公開 repository 或 Release 重新散布；SHA-256 清單保留供本機驗證。
+已整套採用 **induwarabh — Gaming room**。原檔、作者、來源、授權與修改說明見 [assets/models/CREDITS.md](assets/models/CREDITS.md)。原始 OBJ／MTL、BLEND、貼圖壓縮檔與解壓圖片保存在 `assets/models/sources/gaming-room/`，並附 SHA-256 清單。
 
-唯一執行模型包為 `assets/models/room-scene.js`。原尺寸貼圖版已保存於 commit `7f3a7ee`；目前依後續要求試用壓縮版，從 310.52 MB 降至 57.12 MB（減少 81.61%）。幾何採 Deflate 無損壓縮，不減面；本次依要求移除筆電的 21 個零件，並恢復電視原有的顯示／自發光圖片。貼圖最長邊降至 2K，WebP 一般品質 88、法線品質 95，近看細節可能較柔和。其餘材質、燈光和運鏡保持相同。精確大小、三角形數與缺失貼圖清單見 `assets/models/model-stats.json`。原檔只供保存／重建，不參與播放。舊模型包、舊來源、舊轉換程式與過時清單均已刪除。
+線上場景使用 `assets/models/room-scene.json`、獨立 Deflate 幾何與 WebP 貼圖；雙擊 `index.html` 時則自動改用自包含的 `room-scene.js`，避開瀏覽器對 `file://` sibling fetch 的限制。離線包不會部署。原尺寸貼圖版已保存於 commit `7f3a7ee`；目前版本不減面，移除筆電的 21 個零件並恢復電視原有的顯示／自發光圖片。貼圖最長邊為 2K，WebP 一般品質 88、法線品質 95。拆分後線上資產合計約 42.92 MB，可分別快取。載入期間會顯示進度，失敗或低階裝置會自動改用輕量 BIOS。精確大小、三角形數與缺失貼圖清單見 `assets/models/model-stats.json`。原檔只供保存／重建，部署流程會排除整個來源資料夾。
 
 `scene.js` 同時解壓幾何及解碼本地圖片，再建立場景。執行端需要瀏覽器支援原生 `DecompressionStream('deflate')`；同頁重播可重用已解壓的 CPU 幾何。捲動、反向捲動、跳過、重播與桌面銜接沿用同一個開機流程。載入途中跳過會釋放稍後完成的場景；不支援解壓 API、模型缺檔、貼圖失敗與低效能模式均進入精簡開機畫面。檔案大小改善不代表載入時間等比例縮短，GPU 上傳與首次編譯仍需時間。
 
-重建前須由具授權的使用者自行將原始下載內容還原至 `assets/models/sources/gaming-room/`，再執行 `node tools/build-room-scene.mjs /absolute/build-tools/node_modules`。建置工具使用 `three@0.160.1`、`sharp@0.35.4` 及 Python 3 標準函式庫，不使用減面工具。
+重建：`node tools/build-room-scene.mjs /absolute/build-tools/node_modules`。建置工具使用 `three@0.160.1`、`sharp@0.35.4` 及 Python 3 標準函式庫，不使用減面工具。

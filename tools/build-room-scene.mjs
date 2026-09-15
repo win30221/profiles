@@ -58,7 +58,7 @@ const u=right.clone().sub(left);u.y=0;u.normalize();const v=new T.Vector3(0,1,0)
 const rotate=new T.Matrix4().makeBasis(u,v,n).invert();display.applyMatrix4(rotate);display.computeBoundingBox();
 const box=display.boundingBox,c=box.getCenter(new T.Vector3());c.z=box.max.z+.0005;
 const transform=new T.Matrix4().makeTranslation(-c.x,-.173504,-c.z).multiply(rotate);
-const data={version:5,source:'induwarabh / Gaming room / CGTrader #4606915',screen:{center:[0,c.y-.173504,0],width:(box.max.x-box.min.x)*.985,height:(box.max.y-box.min.y)*.985},materials:{},textures:{},parts:[],objects:[],excludedObjects:[]};
+const data={version:6,source:'induwarabh / Gaming room / CGTrader #4606915',screen:{center:[0,c.y-.173504,0],width:(box.max.x-box.min.x)*.985,height:(box.max.y-box.min.y)*.985},materials:{},textures:{},parts:[],objects:[],excludedObjects:[]};
 const files=new Map(fs.readdirSync(path.join(source,'textures')).map(f=>[f.toLowerCase(),f]));
 const textures=new Map(),buckets=new Map(),canonical=new Map(),missing=new Set();
 const numbers=(s,def)=>s?s.split(/\s+/).map(Number):def;
@@ -140,13 +140,21 @@ for(const [id,gs]of buckets){const g=mergeGeometries(gs),large=g.attributes.posi
 }
 const geometryBuffer=Buffer.concat(chunks);
 const compressedGeometry=deflateSync(geometryBuffer,{level:6});
-data.geometry={codec:'deflate',byteLength:geometryBuffer.length,sha256:createHash('sha256').update(geometryBuffer).digest('hex'),data:compressedGeometry.toString('base64')};
+const geometryHash=createHash('sha256').update(compressedGeometry).digest('hex').slice(0,12);
+const geometryFile=`room-geometry.${geometryHash}.deflate`;
+data.geometry={codec:'deflate',byteLength:geometryBuffer.length,sha256:createHash('sha256').update(geometryBuffer).digest('hex'),url:`assets/models/${geometryFile}`};
+fs.writeFileSync(path.join('assets/models',geometryFile),compressedGeometry);
 // Keep all mesh detail. Only texture sampling/compression changes: at most
 // 2K, with extra quality for normal maps to protect shading detail.
+const textureDir='assets/models/textures';fs.mkdirSync(textureDir,{recursive:true});
+let textureBytes=0;const offlineTextures={};
 for(const [key,spec]of textures){
  if(!Object.values(data.materials).some(m=>Object.values(m).some(v=>v?.texture===key)))continue;
  const image=await sharp(path.join(source,'textures',spec.file)).resize(2048,2048,{fit:'inside',withoutEnlargement:true}).webp({quality:spec.kind==='normal'?95:88}).toBuffer(),meta=await sharp(image).metadata();
- data.textures[key]={width:meta.width,height:meta.height,kind:spec.kind,url:'data:image/webp;base64,'+image.toString('base64')};
+ const imageHash=createHash('sha256').update(image).digest('hex').slice(0,12),file=`${imageHash}.webp`;
+ fs.writeFileSync(path.join(textureDir,file),image);textureBytes+=image.length;
+ offlineTextures[key]='data:image/webp;base64,'+image.toString('base64');
+ data.textures[key]={width:meta.width,height:meta.height,kind:spec.kind,url:`assets/models/textures/${file}`};
 }
 // OBJ has no light objects. Recover the original five Blender area lights.
 const lightSource=JSON.parse(execFileSync('python3',['tools/extract-room-lighting.py'],{encoding:'utf8'}));
@@ -163,7 +171,12 @@ data.lights=lightSource.lights.map(l=>{
 const {RectAreaLightUniformsLib}=await load('three/examples/jsm/lights/RectAreaLightUniformsLib.js');
 RectAreaLightUniformsLib.init();
 data.areaLightLTC=[1,2].map(i=>encode(T.UniformsLib['LTC_FLOAT_'+i].image.data));
-const out='/* Gaming room — induwarabh. See CREDITS.md. Generated; do not edit. */\nwindow.WorkspaceModelData='+JSON.stringify(data)+';\n';
-fs.writeFileSync('assets/models/room-scene.js',out);
-const stats={sourceFanTriangles,sourceTriangles,retainedTriangles,excludedTriangles:sourceTriangles-retainedTriangles,triangles:retainedTriangles+2,decimation:false,geometryEncoding:'deflate-float32',geometryBytes:geometryBuffer.length,compressedGeometryBytes:compressedGeometry.length,maxTextureSize:2048,textureQuality:{color:88,normal:95},drawMeshes:data.parts.length+1,textures:Object.keys(data.textures).length,bytes:Buffer.byteLength(out),screen:data.screen,missingTextures:[...missing]};
+const manifest=JSON.stringify(data)+'\n';
+fs.writeFileSync('assets/models/room-scene.json',manifest);
+const offlineData=structuredClone(data);
+delete offlineData.geometry.url;offlineData.geometry.data=compressedGeometry.toString('base64');
+for(const [key,texture]of Object.entries(offlineData.textures))texture.url=offlineTextures[key];
+const offline='/* Offline Gaming room bundle — generated; not deployed. See CREDITS.md. */\nwindow.WorkspaceModelData='+JSON.stringify(offlineData)+';\n';
+fs.writeFileSync('assets/models/room-scene.js',offline);
+const stats={sourceFanTriangles,sourceTriangles,retainedTriangles,excludedTriangles:sourceTriangles-retainedTriangles,triangles:retainedTriangles+2,decimation:false,geometryEncoding:'deflate-float32',geometryBytes:geometryBuffer.length,compressedGeometryBytes:compressedGeometry.length,textureBytes,manifestBytes:Buffer.byteLength(manifest),offlineBundleBytes:Buffer.byteLength(offline),maxTextureSize:2048,textureQuality:{color:88,normal:95},drawMeshes:data.parts.length+1,textures:Object.keys(data.textures).length,bytes:Buffer.byteLength(manifest)+compressedGeometry.length+textureBytes,screen:data.screen,missingTextures:[...missing]};
 fs.writeFileSync('assets/models/model-stats.json',JSON.stringify(stats,null,2)+'\n');console.log(stats);

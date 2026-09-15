@@ -1,0 +1,21 @@
+{
+  "name": "hugo-os-profile",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:model": "node tools/build-room-scene.mjs node_modules",
+    "verify:model-sources": "node tools/verify-model-sources.mjs",
+    "test": "npm run test:intro && npm run test:desktop && npm run test:workspace",
+    "test:intro": "node tests/intro-animation.cjs",
+    "test:desktop": "node tests/desktop.cjs",
+    "test:workspace": "node tests/workspace.cjs"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "6.2.5",
+    "jsdom": "30.0.1",
+    "sharp": "0.35.4",
+    "three": "0.160.1"
+  }
+}

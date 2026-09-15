@@ -1,6 +1,6 @@
 # 開場模型來源與使用紀錄
 
-整理日期：2026-09-15。公開 repository 只包含整合進網站成品的模型包，不包含或重新散布從 CGTrader 下載的原始模型與原尺寸貼圖。
+整理日期：2026-09-15。本次依使用者要求供本地個人遊玩，沒有購買模型或公開發布。
 
 ## 唯一採用的模型：Gaming room
 
@@ -8,7 +8,7 @@
 - [商品頁](https://www.cgtrader.com/free-3d-models/interior/other/gaming-room-47f2be48-f704-4a01-841d-9677f175bb02)。
 - [使用者提供的下載頁](https://www.cgtrader.com/items/4606915/download-page)，商品 ID **4606915**。
 - 2026-09-14 查閱商品頁：標示 **Free**、**Royalty Free License (no AI)**。免費並非 CC0，仍適用原作者與平台素材授權。
-- 原始檔只保存在授權使用者本機的 `sources/gaming-room/`，並由 `.gitignore` 排除。三個模型來源檔及 48 個解壓貼圖的 SHA-256 見 `source-checksums.json`；內容重複且未被建置使用的貼圖 ZIP 已清除。
+- 原始檔：[sources/gaming-room/](sources/gaming-room/)。三個模型來源檔及 48 個解壓貼圖完整保存，SHA-256 見 `source-checksums.json`；內容重複且未被建置使用的貼圖 ZIP 已清除。
 
 ## 採用內容與精度
 
@@ -19,7 +19,7 @@
 - 正確三角化後：來源 **1,668,122** 個三角形。
 - 排除場外散落零件與門窗輔助方塊，加上筆電共 **57,552** 個三角形；物件名稱列於模型包的 `excludedObjects`。
 - 保留房間幾何 **1,610,570** 個三角形；加上 BIOS 平面後共 **1,610,572** 個三角形、**118** 個網格批次、**32** 張貼圖。
-- 執行模型包 `room-scene.js` 從 **310,523,371 bytes（310.52 MB）** 降至 **57,118,116 bytes（57.12 MB）**，減少 **81.61%**；精確數據見 `model-stats.json`。幾何二進位 81,434,980 bytes，Deflate 後為 29,615,790 bytes，再以 base64 內嵌。
+- 線上資產已從單一 **57,118,116 bytes（57.12 MB）** 的 `room-scene.js` 拆為約 **0.31 MB manifest、29.62 MB 二進位幾何與 12.99 MB 獨立 WebP**。合計約 **42.92 MB**，並可分別快取，不再承擔 base64 膨脹與超大 JavaScript 解析成本；精確數據見 `model-stats.json`。
 - 初次壓縮保留材質與物件布局；本次恢復電視顯示並移除筆電，五盞來源燈光、LTC 資料及運鏡未修改。檔案縮小不等於載入時間等比例下降；仍需解壓、圖片解碼、GPU 上傳與首次著色器編譯。
 
 ## 匯入與互動修改
@@ -33,7 +33,7 @@
 
 ## 保存與清理
 
-三個模型來源檔與解壓後的原尺寸貼圖只保存在授權使用者本機的 `assets/models/sources/gaming-room/`，並逐一記錄 SHA-256。該資料夾不進入公開 repository 或 Release。網站不依賴該資料夾；需要重建時，具授權的使用者須自行還原 OBJ、MTL、BLEND 與解壓貼圖。
+三個模型來源檔與解壓後的原尺寸貼圖保存在 `assets/models/sources/gaming-room/`，並逐一記錄 SHA-256。網站不依賴該資料夾；重建工具直接讀取其中的 OBJ、MTL、BLEND 與解壓貼圖。
 
 已清除前一套 Gaming furniture set 的模型包、FBX／MAX／OBJ／貼圖與壓縮檔，以及其轉換程式。更早的 Flos／Xiaomi 檯燈、Gaming Setup、Poly Haven 書本、舊程式化道具、過時候選清單與替換規劃也已移除。
 
@@ -45,4 +45,4 @@
 node tools/build-room-scene.mjs /absolute/build-tools/node_modules
 ```
 
-所有輸入均來自授權使用者本機的 `assets/models/sources/gaming-room/`；該資料夾不隨公開 repository 提供。執行端僅讀取本地 `room-scene.js`，原始 OBJ／BLEND 與貼圖來源不參與播放。瀏覽器使用原生 `DecompressionStream('deflate')` 解壓，同時解碼貼圖；需要支援此 API 的瀏覽器。重播共用已解壓的 CPU 幾何緩衝區，但每次建立獨立 GPU 資源，離開開場時釋放；API 不支援或載入失敗則進入既有精簡 BIOS。Three.js r160 授權見 `../vendor/THREE-LICENSE.txt`。
+所有输入均來自本專案的 `assets/models/sources/gaming-room/`。線上執行端讀取小型 `room-scene.json`、獨立 Deflate 幾何與 WebP 貼圖；雙擊 `index.html` 時改讀自包含的 `room-scene.js`。部署流程會排除離線包、原始 OBJ／BLEND 與來源貼圖。瀏覽器使用原生 `DecompressionStream('deflate')` 解壓，HTTP 模式另以串流 `fetch` 下載；需要支援這些 API 的瀏覽器。重播共用已解壓的 CPU 幾何緩衝區，但每次建立獨立 GPU 資源，離開開場時釋放；API 不支援或載入失敗則進入既有精簡 BIOS。Three.js r160 授權見 `../vendor/THREE-LICENSE.txt`。
