@@ -44,25 +44,32 @@ body.intro-active{overflow:hidden}
 .boot{display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(0,1fr);position:fixed;inset:0;width:100vw;height:100dvh;z-index:31;overflow:hidden;transform-origin:0 0;background:#0b0e0c;animation:none;transition:none;pointer-events:none;backface-visibility:hidden;will-change:transform;contain:layout paint}
 .boot-inner{width:min(640px,calc(100vw - 100px));margin:0;padding:0}
 .bios-header{display:flex;align-items:center;gap:19px;font:27px/1.3 var(--mono);letter-spacing:-.03em;color:#dbe4d2}
+.bios-header strong{font:inherit;font-weight:400}.bios-header>b{margin-left:auto;align-self:flex-start;font:9px/1.4 var(--mono);letter-spacing:.1em;color:#7f9273}
 .bios-header .brand-symbol{width:42px;height:42px;font-family:var(--sans);font-size:30px}
 .bios-header small{display:block;font:10px/1.6 var(--mono);letter-spacing:.12em;color:#9fac95;margin-top:7px}
 .bios-rule{height:1px;background:#3b4831;margin:25px 0 27px}
-#boot-lines{min-height:274px}
+.boot-stage-rail{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:-13px 0 25px;font-size:8px;letter-spacing:.08em;color:#66735f}
+.boot-stage-rail span{padding-top:9px;border-top:2px solid #273021}.boot-stage-rail span.active{color:#c7dcb2;border-color:#b3d48d}.boot-stage-rail span.complete{color:#829474;border-color:#657a54}
+#boot-lines{min-height:238px}
 #boot-lines p{font:14px/1.6 var(--mono);color:#bcc8b1;margin:0 0 8px;white-space:nowrap}
-#boot-lines p span{color:#b3d48d;margin-right:19px}
+#boot-lines p span{display:inline-block;min-width:72px;color:#b3d48d;margin-right:14px}
 .bios-progress{height:2px;background:#26311f;margin-top:19px}
 .bios-progress i{display:block;width:0;height:100%;background:#b3d48d}
 .bios-footer{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-top:14px;font-size:9px;letter-spacing:.07em;color:#8fa37d}
-#boot-ready h1{font-size:clamp(64px,8vw,100px);line-height:1.1;margin:24px 0 28px}
-#boot-ready p{font:13px var(--mono);color:#b5cba0;display:flex;align-items:center;gap:10px;margin:0}
-#boot-ready .eyebrow{font-size:11px;color:#a3b694}
-@media(max-width:700px){.boot-inner{width:calc(100vw - 48px)}.bios-header{font-size:24px}.bios-header small{font-size:8px}.bios-header .brand-symbol{width:34px;height:34px;font-size:25px}#boot-lines{min-height:260px}#boot-lines p{font-size:11px}#boot-lines p span{margin-right:9px}.bios-footer{font-size:7px}#boot-ready .eyebrow{font-size:9px}}
+#boot-ready{display:flex;flex-direction:column;align-items:center;text-align:center}
+.boot-logo{position:relative;width:70px;height:70px;display:grid;place-items:center;border:1px solid #b3d48d;border-radius:17px;background:linear-gradient(145deg,#d4eab8,#a9cb82);color:#172013;box-shadow:0 0 0 7px #b3d48d0a,0 18px 55px #0008}
+.boot-logo span{font:700 47px/1 var(--sans);letter-spacing:-.09em;transform:translateX(-1px)}.boot-logo i{position:absolute;top:10px;left:50%;width:14px;height:4px;border-radius:2px;background:#172013;transform:translateX(-50%)}
+.boot-wordmark{display:flex;align-items:baseline;margin-top:25px;font-size:clamp(38px,5vw,54px);line-height:1;letter-spacing:-.065em}.boot-wordmark strong{font-weight:650}.boot-wordmark span{margin-left:8px;color:#bdda93;font-weight:300}
+#boot-ready .boot-edition{margin:12px 0 0;color:#899c7b;font-size:9px;letter-spacing:.18em}
+.boot-session{display:flex;align-items:center;margin-top:42px;color:#afc49b;font-size:10px;letter-spacing:.06em}.boot-session>.status-dot{margin-right:10px;width:5px;height:5px}.boot-session>b{display:flex;gap:4px;margin-left:7px}.boot-session>b i{width:3px;height:3px;border-radius:50%;background:#bdda93;animation:boot-dot 1.2s ease-in-out infinite}.boot-session>b i:nth-child(2){animation-delay:.15s}.boot-session>b i:nth-child(3){animation-delay:.3s}
+@keyframes boot-dot{0%,60%,100%{opacity:.25}30%{opacity:1}}
+@media(max-width:700px){.boot-inner{width:calc(100vw - 48px)}.bios-header{font-size:20px}.bios-header small{font-size:8px}.bios-header>b{font-size:7px}.bios-header .brand-symbol{width:34px;height:34px;font-size:25px}.boot-stage-rail{font-size:6px;gap:6px}#boot-lines{min-height:224px}#boot-lines p{font-size:10px}#boot-lines p span{min-width:54px;margin-right:7px}.bios-footer{font-size:7px}.boot-logo{width:62px;height:62px;border-radius:15px}.boot-logo span{font-size:42px}.boot-wordmark{font-size:40px}.boot-session{margin-top:34px}}
 @media(prefers-reduced-motion:reduce){.boot{will-change:auto}#scene-host{will-change:auto}}
 
 /* Native scroll surface over the scene; the desktop keeps its own normal scroll. */
 .intro-scroll{position:fixed;inset:0;z-index:32;overflow-x:hidden;overflow-y:scroll;overscroll-behavior:contain;touch-action:pan-y pinch-zoom;scrollbar-width:thin;scrollbar-color:#8b9f7760 transparent}
 .intro-scroll:focus-visible{outline:none}
-.intro-scroll-distance{height:380vh;height:380svh;pointer-events:none}
+.intro-scroll-distance{height:460vh;height:460svh;pointer-events:none}
 .intro-controls{position:fixed;inset:0;z-index:33;pointer-events:none}
 .intro-controls button{pointer-events:auto;min-height:44px}
 .intro-controls #skip-intro{position:absolute;bottom:20px;right:44px;padding:10px 12px;background:#0b0e0c99;border-radius:4px}
@@ -73,7 +80,7 @@ body.intro-active{overflow:hidden}
 @keyframes cue-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
 @media(max-width:900px){.intro-controls #skip-intro{right:20px}}
 @media(max-width:520px){.intro-controls #skip-intro{top:max(16px,env(safe-area-inset-top));bottom:auto;right:16px}.scroll-cue{letter-spacing:.2em;font-size:10px;bottom:max(22px,env(safe-area-inset-bottom))}}
-@media(max-height:580px){.boot-inner{padding-bottom:65px}.bios-header{font-size:20px;gap:12px}.bios-header .brand-symbol{width:30px;height:30px;font-size:22px}.bios-header small{font-size:8px;margin-top:3px}.bios-rule{margin:10px 0}#boot-lines{min-height:153px}#boot-lines p{font-size:10px;line-height:1.3;margin-bottom:4px}.bios-progress{margin-top:9px}.bios-footer{font-size:7px;margin-top:8px}#boot-ready h1{font-size:56px;margin:14px 0 18px}}
+@media(max-height:580px){.boot-inner{padding-bottom:65px}.bios-header{font-size:18px;gap:12px}.bios-header .brand-symbol{width:30px;height:30px;font-size:22px}.bios-header small{font-size:7px;margin-top:3px}.bios-rule{margin:9px 0}.boot-stage-rail{margin:0 0 10px}#boot-lines{min-height:128px}#boot-lines p{font-size:9px;line-height:1.25;margin-bottom:3px}.bios-progress{margin-top:8px}.bios-footer{font-size:7px;margin-top:7px}.boot-logo{width:54px;height:54px;border-radius:13px}.boot-logo span{font-size:36px}.boot-logo i{top:8px}.boot-wordmark{margin-top:18px;font-size:34px}#boot-ready .boot-edition{font-size:7px}.boot-session{margin-top:22px}}
 
 /* Leave room for the intro controls on narrow portrait screens. */
 @media(max-width:520px){.intro-copy{right:24px}.intro-copy h1{font-size:clamp(27px,8vw,37px)}}

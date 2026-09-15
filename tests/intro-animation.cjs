@@ -198,20 +198,21 @@ const loaderWindow={location:{protocol:'file:'}};
 const loaderContext=vm.createContext({window:loaderWindow,loadClassic:async()=>{offlineScriptLoads++;loaderWindow.WorkspaceModelData=offlineModel;},fetch:async()=>{throw new Error('file:// loader must not fetch')}});
 vm.runInContext(loaderSource,loaderContext);
 assert.equal((await vm.runInContext('loadRoomManifest()',loaderContext)).version,6);assert.equal(offlineScriptLoads,1);
-const appContext=vm.createContext({$,document:{hidden:false,body:new Element(),createElement:()=>new Element()},window:appWindow,navigator:{},reducedMotion:{matches:false},requestAnimationFrame(){return 1;},cancelAnimationFrame(){},loadClassic:async()=>{},loadRoomManifest:async()=>model,showSceneLoading(){},hideSceneLoading(){},AbortController,closeApp(){},console});
+const appContext=vm.createContext({$,document:{hidden:false,body:new Element(),createElement:()=>new Element(),querySelectorAll(selector){return selector==='.boot-stage-rail span'?Array.from({length:4},()=>new Element()):[];}},window:appWindow,navigator:{},reducedMotion:{matches:false},requestAnimationFrame(){return 1;},cancelAnimationFrame(){},loadClassic:async()=>{},loadRoomManifest:async()=>model,showSceneLoading(){},hideSceneLoading(){},AbortController,closeApp(){},console});
 vm.runInContext(`let phase='intro',opening=null,openingFrame=0,sceneCleanup=null,sceneLoadController=null,studio=null,introRun=0;`+appSource.slice(appSource.indexOf('// One scroll position'),appSource.indexOf("$('#app-nav').innerHTML=")),appContext);
 const run=code=>vm.runInContext(code,appContext);
 appContext.assertSceneVisible=()=>assert(!$('#cinematic').classList.contains('hidden'),'Never project from a hidden zero-size scene, including on rewind');
 run(`studio={render(){assertSceneVisible();return {transform:'projection'};},reduceQuality(){}};beginClock();`);
 const scroller=$('#intro-scroll');
-for(const time of [0,2.6,3.65,4,4.5,7,9,10.399,10.4,12.4,13.2,13.35,10.39,8,0,12.4]){
- scroller.scrollTop=(time+1e-8)/14.8*(scroller.scrollHeight-scroller.clientHeight);run('tickOpening(1000)');
+const bootLineTimes=[4.45,5,5.55,6.25,7.35,8.05,8.85,10,11.7,12.25,12.85,13.45,14,14.6,15.25];
+for(const time of [0,2.6,3.65,4.15,4.45,7.2,8.05,10.399,10.4,11.55,13.85,15.25,15.64,15.65,10.39,8,0,15]){
+ scroller.scrollTop=(time+1e-8)/17.2*(scroller.scrollHeight-scroller.clientHeight);run('tickOpening(1000)');
  assert(Math.abs(Number($('#boot').dataset.elapsed)-time)<.001);
- assert.equal($('#boot-lines').children.filter(e=>!e.classList.contains('hidden')).length,[4.5,5.2,6.1,7,8,9,10.7,11.5,12.4].filter(t=>t<=time).length);
+ assert.equal($('#boot-lines').children.filter(e=>!e.classList.contains('hidden')).length,Math.min(7,bootLineTimes.filter(t=>t<=time).length));
  assert.equal($('#boot').dataset.presentation,time<10.4?'monitor':'fullscreen');
  assert.equal($('#boot').classList.contains('hidden'),time<3.65);
- assert.equal($('#boot-ready').classList.contains('hidden'),time<13.35);
- assert.equal($('#boot-log').style.visibility,time>=4&&time<13.15?'visible':'hidden');
+ assert.equal($('#boot-ready').classList.contains('hidden'),time<15.65);
+ assert.equal($('#boot-log').style.visibility,time>=4.15&&time<15.65?'visible':'hidden');
  const before=$('#boot').dataset.elapsed;run('tickOpening(900000)');assert.equal($('#boot').dataset.elapsed,before,'Paused scroll must not autoplay');
 }
 // Resize preserves timeline percentage rather than using the old pixel offset.
@@ -224,12 +225,12 @@ scroller.scrollTop=scroller.scrollHeight-scroller.clientHeight;run('tickOpening(
  appWindow.THREE={};appWindow.createWorkspaceScene=()=>({render(){return {transform:'projection'};},dispose(){}});
  await run('startIntro()');run('tickOpening(1)');assert.equal(Number($('#boot').dataset.elapsed),0);assert.equal(run('phase'),'intro');
  run('enterDesktop()');assert.equal(run('phase'),'desktop');
- appContext.reducedMotion.matches=true;await run('startIntro()');assert.equal(run('opening.interactive'),false);assert.equal(run('opening.time'),13.35);
+ appContext.reducedMotion.matches=true;await run('startIntro()');assert.equal(run('opening.interactive'),false);assert.equal(run('opening.time'),15.65);
  for(let t=100;t<=800;t+=100)run(`tickOpening(${t})`);assert.equal(run('phase'),'desktop');
- appContext.reducedMotion.matches=false;appContext.navigator.connection={saveData:true};await run('startIntro()');run('tickOpening(1)');assert.equal(run('opening.start'),4);assert.equal(run('opening.interactive'),true);assert.equal(run('studio'),null);
+ appContext.reducedMotion.matches=false;appContext.navigator.connection={saveData:true};await run('startIntro()');run('tickOpening(1)');assert.equal(run('opening.start'),4.15);assert.equal(run('opening.interactive'),true);assert.equal(run('studio'),null);
  // WebGL loss mid-intro retains current time and hands off to scroll boot.
  appContext.navigator.connection={};appWindow.createWorkspaceScene=(_,callbacks)=>{appContext.failScene=callbacks.onFailure;return {render(){return {transform:'projection'};},dispose(){}};};
- await run('startIntro()');scroller.scrollTop=9/14.8*(scroller.scrollHeight-scroller.clientHeight);run('tickOpening(1);failScene();tickOpening(2)');assert.equal(Number($('#boot').dataset.elapsed),9);assert.equal(run('opening.start'),4);assert.equal(run('studio'),null);
+ await run('startIntro()');scroller.scrollTop=12/17.2*(scroller.scrollHeight-scroller.clientHeight);run('tickOpening(1);failScene();tickOpening(2)');assert.equal(Number($('#boot').dataset.elapsed),12);assert.equal(run('opening.start'),4.15);assert.equal(run('studio'),null);
  // Texture decoding is asynchronous. Skipping while it is pending must
  // dispose the late scene and must never restart the intro over the desktop.
  appWindow.WorkspaceModelData={version:6};
@@ -241,7 +242,7 @@ scroller.scrollTop=scroller.scrollHeight-scroller.clientHeight;run('tickOpening(
  delete appWindow.WorkspaceModelData;
  appContext.loadRoomManifest=async()=>{throw Error('Missing model bundle');};
  await run('startIntro()');
- assert.equal(run('studio'),null);assert.equal(run('opening.start'),4,'Missing set uses lightweight boot');
+ assert.equal(run('studio'),null);assert.equal(run('opening.start'),4.15,'Missing set uses lightweight boot');
  console.log('PASS: BIOS stages, reverse scrolling, pause, resize, completion, skip/replay, reduced motion, save-data fallback and WebGL context loss.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 

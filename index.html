@@ -8,10 +8,10 @@
   <title>HUGO OS — An engineer's workspace</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260915-no-scroll-outline-1">
+  <link rel="stylesheet" href="styles.css?v=20260915-realistic-boot-2">
   <link rel="stylesheet" href="os.css?v=20260914-2">
   <script src="os.js?v=20260914-2" defer></script>
-  <script src="app.js?v=20260915-tv-original-90-1" defer></script>
+  <script src="app.js?v=20260915-realistic-boot-2" defer></script>
 </head>
 <body class="intro-active">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -27,13 +27,19 @@
   <section id="boot" class="boot hidden" aria-label="HUGO OS startup" aria-live="off">
     <div class="boot-inner">
       <div id="boot-log">
-        <div class="bios-header"><span class="brand-symbol">H</span><span>HUGO BIOS<small>BACKEND ENGINEERING SYSTEM / v1.0</small></span></div>
+        <div class="bios-header"><span class="brand-symbol">H</span><span><strong id="boot-title">HUGO FIRMWARE</strong><small id="boot-subtitle">UEFI REVISION 1.0.26 / BUILD 0915</small></span><b id="boot-stage-count">01 / 04</b></div>
         <div class="bios-rule"></div>
+        <div class="boot-stage-rail mono" aria-hidden="true"><span>FIRMWARE</span><span>KERNEL</span><span>SERVICES</span><span>SESSION</span></div>
         <div id="boot-lines" class="mono"></div>
         <div class="bios-progress" role="progressbar" aria-label="System startup" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="boot-progress"></i></div>
         <div class="bios-footer mono"><span id="boot-task">POWER ON SELF TEST</span><span id="boot-percent">00%</span></div>
       </div>
-      <div id="boot-ready" class="hidden"><span class="eyebrow">BACKEND ENGINEERING SYSTEM</span><h1>HUGO<span>OS</span></h1><p><i class="status-dot"></i> System Ready.</p></div>
+      <div id="boot-ready" class="hidden">
+        <div class="boot-logo" aria-hidden="true"><span>H</span><i></i></div>
+        <div class="boot-wordmark" aria-label="HUGO OS"><strong>HUGO</strong><span>OS</span></div>
+        <p class="boot-edition mono">PERSONAL WORKSPACE SYSTEM</p>
+        <div class="boot-session mono"><i class="status-dot"></i><span>Starting workspace</span><b aria-hidden="true"><i></i><i></i><i></i></b></div>
+      </div>
     </div>
   </section>
   <div id="intro-scroll" class="intro-scroll hidden" tabindex="0" role="region" aria-label="Scroll down to advance the introduction. Scroll up to rewind. Use arrow keys or Page Down to move."><div class="intro-scroll-distance" aria-hidden="true"></div></div>

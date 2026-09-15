@@ -267,14 +267,31 @@ function hideSceneLoading(){
 // One scroll position, one DOM surface — from the dark room to HUGO OS.
 const OPENING = Object.freeze({
   reducedMotionRate: 4,
-  power: 2.6, screen: 3.65, bios: 4.0, arrival: 10.4,
-  clear: 13.15, ready: 13.35, desktop: 14.8,
+  power: 2.6, screen: 3.65, bios: 4.15, arrival: 10.4,
+  kernel: 7.2, services: 11.55, session: 13.85,
+  clear: 15.65, ready: 15.65, desktop: 17.2,
+  stages: [
+    [4.15, 7.2, 'HUGO FIRMWARE', 'UEFI REVISION 1.0.26 / BUILD 0915'],
+    [7.2, 11.55, 'HUGO BOOT MANAGER', 'KERNEL IMAGE / HUGO-OS 1.0.0'],
+    [11.55, 13.85, 'SYSTEM INITIALIZATION', 'DEPENDENCY AND SERVICE MANAGER'],
+    [13.85, 15.65, 'WORKSPACE SESSION', 'USER SPACE / VISITOR PROFILE'],
+  ],
   lines: [
-    [4.5, 'Initializing hardware...'], [5.2, 'Loading kernel...'],
-    [6.1, 'Starting network...'], [7.0, 'Connecting database...'],
-    [8.0, 'Starting backend services...'], [9.0, 'Starting portfolio service...'],
-    [10.7, 'Loading modules...'], [11.5, 'Mounting project archive...'],
-    [12.4, 'System ready.'],
+    [4.45, 'POST', 'CPU package 0: 8 logical processors'],
+    [5.0, 'TEST', 'Memory test: 16384 MB verified'],
+    [5.55, ' OK ', 'NVMe0: workspace volume detected'],
+    [6.25, ' OK ', 'Firmware integrity policy verified'],
+    [7.35, 'LOAD', 'Loading HUGO kernel 1.0.0'],
+    [8.05, 'LOAD', 'Decompressing kernel image'],
+    [8.85, 'INIT', 'Initializing device manager'],
+    [10.0, 'MOUNT', 'Mounted /system read-only'],
+    [11.7, ' OK ', 'Started network interface'],
+    [12.25, ' OK ', 'Started backend service manager'],
+    [12.85, ' OK ', 'Started portfolio index'],
+    [13.45, 'MOUNT', 'Mounted project archive'],
+    [14.0, 'USER', 'Loading visitor profile'],
+    [14.6, 'INIT', 'Starting desktop compositor'],
+    [15.25, ' OK ', 'Workspace session restored'],
   ],
 });
 function stopOpening(){
@@ -285,21 +302,30 @@ function stopOpening(){
 function renderBoot(time){
   const surface=$('#boot');
   const count=OPENING.lines.filter(([at])=>time>=at).length;
-  const nextState=time>=OPENING.ready?'ready':time>=OPENING.clear?'clear':time>=OPENING.bios?'booting':'power';
+  const stageIndex=OPENING.stages.findIndex(([from,to])=>time>=from&&time<to);
+  const stage=stageIndex<0?null:OPENING.stages[stageIndex];
+  const nextState=time>=OPENING.ready?'ready':time>=OPENING.bios?'booting':'power';
   // Keep each row once created, including when scrolling backward or crossing
   // the monitor boundary. Visibility is a pure function of scroll progress.
   while($('#boot-lines').children.length<count){
-    const i=$('#boot-lines').children.length,p=document.createElement('p');
-    p.innerHTML='<span>[ OK ]</span>'+OPENING.lines[i][1];$('#boot-lines').append(p);
+    const i=$('#boot-lines').children.length,p=document.createElement('p'),line=OPENING.lines[i];
+    p.innerHTML=`<span>[${line[1]}]</span>${line[2]}`;$('#boot-lines').append(p);
   }
-  Array.from($('#boot-lines').children).forEach((row,i)=>row.classList.toggle('hidden',i>=count));
-  $('#boot-log').style.visibility=time>=OPENING.bios&&time<OPENING.clear?'visible':'hidden';
+  Array.from($('#boot-lines').children).forEach((row,i)=>row.classList.toggle('hidden',i>=count||i<Math.max(0,count-7)));
+  $('#boot-log').style.visibility=time>=OPENING.bios&&time<OPENING.ready?'visible':'hidden';
   $('#boot-log').classList.toggle('hidden',time>=OPENING.ready);
   $('#boot-ready').classList.toggle('hidden',time<OPENING.ready);
-  const percent=Math.round(Math.max(0,Math.min(1,(time-OPENING.bios)/(12.4-OPENING.bios)))*100);
+  if(stage){
+    $('#boot-title').textContent=stage[2];$('#boot-subtitle').textContent=stage[3];
+    $('#boot-stage-count').textContent=`0${stageIndex+1} / 04`;
+  }
+  document.querySelectorAll('.boot-stage-rail span').forEach((item,i)=>{
+    item.classList.toggle('active',stageIndex===i);item.classList.toggle('complete',stageIndex>i);
+  });
+  const percent=Math.round(Math.max(0,Math.min(1,(time-OPENING.bios)/(15.25-OPENING.bios)))*100);
   $('#boot-progress').style.width=percent+'%';$('#boot-percent').textContent=String(percent).padStart(2,'0')+'%';
   $('.bios-progress').setAttribute('aria-valuenow',String(percent));
-  $('#boot-task').textContent=count?OPENING.lines[count-1][1].replace('...','').toUpperCase():'POWER ON SELF TEST';
+  $('#boot-task').textContent=count?OPENING.lines[count-1][2].toUpperCase():'POWER ON SELF TEST';
   surface.dataset.bootState=nextState;surface.dataset.elapsed=time.toFixed(3);
 }
 let bootFitKey='';
