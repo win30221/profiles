@@ -245,11 +245,11 @@ function executePortfolioCommand(raw){const input=raw.trim();if(!input)return;co
 function loadClassic(src){return new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(new Error(`Unable to load ${src}`));document.head.appendChild(script);});}
 async function loadRoomManifest(signal){
   if(window.location?.protocol==='file:'){
-    if(window.WorkspaceModelData?.version!==6)await loadClassic('assets/models/room-scene.js?v=20260915-offline-1');
+    if(window.WorkspaceModelData?.version!==6)await loadClassic('assets/models/room-scene.js?v=20260915-decimated-1');
     if(window.WorkspaceModelData?.version!==6)throw new Error('Offline room bundle is incompatible');
     return window.WorkspaceModelData;
   }
-  const response=await fetch('assets/models/room-scene.json?v=20260915-stream-1',{signal});
+  const response=await fetch('assets/models/room-scene.json?v=20260915-decimated-1',{signal});
   if(!response.ok)throw new Error(`Room manifest failed (${response.status})`);
   const data=await response.json();
   if(data?.version!==6)throw new Error('Room manifest is incompatible');

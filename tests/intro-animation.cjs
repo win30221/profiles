@@ -49,8 +49,10 @@ scene.traverse(object=>{
 });
 assert(drawCount<240,'Material batching bounds draw calls without changing model detail');
 const stats=JSON.parse(fs.readFileSync(path.join(root,'assets/models/model-stats.json')));
-assert.equal(stats.decimation,false,'The requested preview must not decimate source meshes');
-assert.equal(triangleCount,stats.sourceTriangles-stats.excludedTriangles+2,'Every retained source triangle is present');
+assert.equal(stats.decimation,true,'The deployed scene should use the optimized fixed-camera mesh');
+assert.ok(stats.decimationRatio<.41,'The optimized scene should retain about 40% of the source triangles');
+assert.ok(stats.maxSimplificationError<=.0031,'Simplification must stay inside the visual error budget');
+assert.equal(triangleCount,stats.triangles,'The rendered triangle count matches the optimized model statistics');
 const set=scene.getObjectByName('gaming-room');assert(set);
 assert.equal(set.children.length,model.parts.length);
 // TV must emit its original image toward the room despite the source's

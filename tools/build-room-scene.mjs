@@ -1,6 +1,6 @@
-/* Full-detail Gaming room by induwarabh, CGTrader #4606915.
+/* Optimized Gaming room by induwarabh, CGTrader #4606915.
    node tools/build-room-scene.mjs NODE_MODULES
-   No decimation: source triangles, normals and UVs are retained.
+   Per-object simplification preserves material seams, normals and UVs.
    Source originals and adaptations: assets/models/CREDITS.md. */
 import fs from 'node:fs';
 import {deflateSync} from 'node:zlib';
@@ -14,6 +14,8 @@ const load=p=>import(pathToFileURL(path.join(modules,p)).href);
 const T=await load('three/build/three.module.js');
 const {OBJLoader}=await load('three/examples/jsm/loaders/OBJLoader.js');
 const {mergeGeometries,mergeVertices}=await load('three/examples/jsm/utils/BufferGeometryUtils.js');
+const {MeshoptSimplifier}=await load('meshoptimizer/meshopt_simplifier.js');
+await MeshoptSimplifier.ready;
 const sharp=createRequire(path.join(modules,'../package.json'))('sharp');
 const source='assets/models/sources/gaming-room';
 const base='uploads_files_4086574_icesometric+gaming+roomlegacy';
@@ -47,6 +49,43 @@ for(const block of fs.readFileSync(path.join(source,base+'.mtl'),'utf8').split('
  for(const line of lines){const i=line.indexOf(' ');if(i>0)mat[line.slice(0,i)]=line.slice(i+1).trim();}materials.set(name.trim(),mat);
 }
 function slice(g,start,count){const out=new T.BufferGeometry();for(const key of ['position','normal','uv']){const a=g.attributes[key];out.setAttribute(key,new T.BufferAttribute(a?a.array.slice(start*a.itemSize,(start+count)*a.itemSize):new Float32Array(count*2),a?.itemSize||2));}return out;}
+function reductionRatio(triangles){
+ // The camera is scripted, so dense small props can be reduced much more than
+ // silhouettes that occupy a large part of the opening. Tiny meshes stay exact.
+ if(triangles>=250000)return .08;
+ if(triangles>=50000)return .25;
+ if(triangles>=20000)return .35;
+ if(triangles>=5000)return .5;
+ if(triangles>=1000)return .7;
+ return 1;
+}
+function compactGeometry(geometry,indices){
+ const compacted=new Uint32Array(indices),[remap,vertexCount]=MeshoptSimplifier.compactMesh(compacted);
+ const out=new T.BufferGeometry(),missing=0xffffffff;
+ for(const key of ['position','normal','uv']){
+  const source=geometry.attributes[key],array=new source.array.constructor(vertexCount*source.itemSize);
+  for(let old=0;old<remap.length;old++){
+   const next=remap[old];if(next===missing)continue;
+   for(let component=0;component<source.itemSize;component++)array[next*source.itemSize+component]=source.array[old*source.itemSize+component];
+  }
+  out.setAttribute(key,new T.BufferAttribute(array,source.itemSize));
+ }
+ out.setIndex(new T.BufferAttribute(compacted,1));return out;
+}
+function simplifyPart(geometry,objectName){
+ const triangles=geometry.index.count/3,ratio=reductionRatio(triangles);
+ if(ratio===1||objectName==='Circle.001')return {geometry,error:0};
+ const position=geometry.attributes.position.array,normal=geometry.attributes.normal.array,uv=geometry.attributes.uv.array;
+ const attributes=new Float32Array((position.length/3)*5);
+ for(let i=0;i<position.length/3;i++)attributes.set([normal[i*3],normal[i*3+1],normal[i*3+2],uv[i*2],uv[i*2+1]],i*5);
+ const sourceIndices=new Uint32Array(geometry.index.array);
+ const target=Math.max(12,Math.floor(sourceIndices.length*ratio/3)*3);
+ // A 0.3% object-relative error cap protects visible outlines. Attribute
+ // weights retain shading and texture placement without crossing UV seams.
+ const [indices,error]=MeshoptSimplifier.simplifyWithAttributes(sourceIndices,position,3,attributes,5,[.5,.5,.5,.25,.25],null,target,.003,['LockBorder','Permissive']);
+ if(indices.length>=sourceIndices.length)return {geometry,error};
+ return {geometry:compactGeometry(geometry,indices),error};
+}
 // The original curved panel stays intact. A flat boot aperture sits just in
 // front of its chord so the existing HTML BIOS can approach fullscreen.
 const primary=scene.getObjectByName('Circle.001');
@@ -91,7 +130,7 @@ function material(name){
  const key=JSON.stringify(d);if(canonical.has(key))return canonical.get(key);
  const id='room-'+canonical.size;canonical.set(key,id);data.materials[id]={name,...d};return id;
 }
-let sourceTriangles=0,retainedTriangles=0;
+let sourceTriangles=0,retainedTriangles=0,preDecimationTriangles=0,maxSimplificationError=0;
 // The laptop is a multi-object export. Remove its whole assembly before
 // material batching, including ports, vents, feet, stickers and lid logo.
 const laptopObjects=new Set([
@@ -121,9 +160,13 @@ scene.traverse(o=>{
  const groups=Array.isArray(o.material)?g.groups:[{start:0,count:g.attributes.position.count,materialIndex:0}];
  for(const group of groups){const mat=Array.isArray(o.material)?o.material[group.materialIndex]:o.material;
   const id=material(mat.name),part=slice(world,group.start,group.count);
-  // Only share identical vertex attributes. No triangles are collapsed.
-  const indexed=mergeVertices(part,1e-7);retainedTriangles+=indexed.index.count/3;
-  if(!buckets.has(id))buckets.set(id,[]);buckets.get(id).push(indexed);
+  // Weld exact duplicate attributes first, then simplify each material slice
+  // independently so material borders and the authored UV layout stay intact.
+  const indexed=mergeVertices(part,1e-7);
+  preDecimationTriangles+=indexed.index.count/3;
+  const simplified=simplifyPart(indexed,o.name);retainedTriangles+=simplified.geometry.index.count/3;
+  maxSimplificationError=Math.max(maxSimplificationError,simplified.error);
+  if(!buckets.has(id))buckets.set(id,[]);buckets.get(id).push(simplified.geometry);
  }
 });
 const encode=a=>Buffer.from(a.buffer,a.byteOffset,a.byteLength).toString('base64');
@@ -178,5 +221,5 @@ delete offlineData.geometry.url;offlineData.geometry.data=compressedGeometry.toS
 for(const [key,texture]of Object.entries(offlineData.textures))texture.url=offlineTextures[key];
 const offline='/* Offline Gaming room bundle — generated; not deployed. See CREDITS.md. */\nwindow.WorkspaceModelData='+JSON.stringify(offlineData)+';\n';
 fs.writeFileSync('assets/models/room-scene.js',offline);
-const stats={sourceFanTriangles,sourceTriangles,retainedTriangles,excludedTriangles:sourceTriangles-retainedTriangles,triangles:retainedTriangles+2,decimation:false,geometryEncoding:'deflate-float32',geometryBytes:geometryBuffer.length,compressedGeometryBytes:compressedGeometry.length,textureBytes,manifestBytes:Buffer.byteLength(manifest),offlineBundleBytes:Buffer.byteLength(offline),maxTextureSize:2048,textureQuality:{color:88,normal:95},drawMeshes:data.parts.length+1,textures:Object.keys(data.textures).length,bytes:Buffer.byteLength(manifest)+compressedGeometry.length+textureBytes,screen:data.screen,missingTextures:[...missing]};
+const stats={sourceFanTriangles,sourceTriangles,preDecimationTriangles,retainedTriangles,excludedTriangles:sourceTriangles-preDecimationTriangles,triangles:retainedTriangles+2,decimation:true,decimationRatio:retainedTriangles/preDecimationTriangles,maxSimplificationError,geometryEncoding:'deflate-float32',geometryBytes:geometryBuffer.length,compressedGeometryBytes:compressedGeometry.length,textureBytes,manifestBytes:Buffer.byteLength(manifest),offlineBundleBytes:Buffer.byteLength(offline),maxTextureSize:2048,textureQuality:{color:88,normal:95},drawMeshes:data.parts.length+1,textures:Object.keys(data.textures).length,bytes:Buffer.byteLength(manifest)+compressedGeometry.length+textureBytes,screen:data.screen,missingTextures:[...missing]};
 fs.writeFileSync('assets/models/model-stats.json',JSON.stringify(stats,null,2)+'\n');console.log(stats);
