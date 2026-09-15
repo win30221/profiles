@@ -9,19 +9,19 @@
   "decimationRatio": 0.4010337954885537,
   "maxSimplificationError": 0.002999310614541173,
   "geometryEncoding": "deflate-float32",
-  "geometryBytes": 29557336,
-  "compressedGeometryBytes": 11586690,
-  "textureBytes": 12987010,
-  "manifestBytes": 314807,
-  "offlineBundleBytes": 33079297,
-  "maxTextureSize": 2048,
+  "geometryBytes": 29238636,
+  "compressedGeometryBytes": 11588130,
+  "textureBytes": 3309572,
+  "manifestBytes": 315577,
+  "offlineBundleBytes": 20178731,
+  "maxTextureSize": 1024,
   "textureQuality": {
-    "color": 88,
-    "normal": 95
+    "color": 84,
+    "normal": 90
   },
-  "drawMeshes": 118,
+  "drawMeshes": 120,
   "textures": 32,
-  "bytes": 24888507,
+  "bytes": 15213279,
   "screen": {
     "center": [
       0,

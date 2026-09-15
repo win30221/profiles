@@ -126,6 +126,10 @@ function material(name){
  // Desk monitors and phone stay off until boot. Preserve the TV's authored
  // color/emission image (Material.005, OIP (5).jpg).
  if(name==='screen'||/^Screen_material(?:\.004)?$/.test(name))d={color:[.003,.005,.008],linearColor:true,roughness:.5,metalness:0};
+ // Blender's PS5 light strip used a node-based blue emission. OBJ/MTL kept
+ // the material name but exported Ke as black, so restore that authored cue.
+ if(name==='emission_blue.003')Object.assign(d,{color:[.015,.02,.05],emissive:[0,.045,1],emissiveIntensity:3.2,roughness:.62});
+ if(name==='body_black.003')Object.assign(d,{color:[.004,.006,.01],emissive:[0,.008,.06],emissiveIntensity:.35,roughness:.72});
  if(m.map_d)d.alphaTest=.15;
  const key=JSON.stringify(d);if(canonical.has(key))return canonical.get(key);
  const id='room-'+canonical.size;canonical.set(key,id);data.materials[id]={name,...d};return id;
@@ -186,14 +190,17 @@ const compressedGeometry=deflateSync(geometryBuffer,{level:6});
 const geometryHash=createHash('sha256').update(compressedGeometry).digest('hex').slice(0,12);
 const geometryFile=`room-geometry.${geometryHash}.deflate`;
 data.geometry={codec:'deflate',byteLength:geometryBuffer.length,sha256:createHash('sha256').update(geometryBuffer).digest('hex'),url:`assets/models/${geometryFile}`};
+for(const file of fs.readdirSync('assets/models'))if(/^room-geometry\.[a-f0-9]+\.deflate$/.test(file)&&file!==geometryFile)fs.rmSync(path.join('assets/models',file));
 fs.writeFileSync(path.join('assets/models',geometryFile),compressedGeometry);
-// Keep all mesh detail. Only texture sampling/compression changes: at most
-// 2K, with extra quality for normal maps to protect shading detail.
+// The scripted camera never inspects surfaces at point-blank range. Cap large
+// textures at 1K and keep extra quality for normal maps to protect shading.
 const textureDir='assets/models/textures';fs.mkdirSync(textureDir,{recursive:true});
+for(const file of fs.readdirSync(textureDir))if(file.endsWith('.webp'))fs.rmSync(path.join(textureDir,file));
+const maxTextureSize=1024,textureQuality={color:84,normal:90};
 let textureBytes=0;const offlineTextures={};
 for(const [key,spec]of textures){
  if(!Object.values(data.materials).some(m=>Object.values(m).some(v=>v?.texture===key)))continue;
- const image=await sharp(path.join(source,'textures',spec.file)).resize(2048,2048,{fit:'inside',withoutEnlargement:true}).webp({quality:spec.kind==='normal'?95:88}).toBuffer(),meta=await sharp(image).metadata();
+ const image=await sharp(path.join(source,'textures',spec.file)).resize(maxTextureSize,maxTextureSize,{fit:'inside',withoutEnlargement:true}).webp({quality:textureQuality[spec.kind]}).toBuffer(),meta=await sharp(image).metadata();
  const imageHash=createHash('sha256').update(image).digest('hex').slice(0,12),file=`${imageHash}.webp`;
  fs.writeFileSync(path.join(textureDir,file),image);textureBytes+=image.length;
  offlineTextures[key]='data:image/webp;base64,'+image.toString('base64');
@@ -221,5 +228,5 @@ delete offlineData.geometry.url;offlineData.geometry.data=compressedGeometry.toS
 for(const [key,texture]of Object.entries(offlineData.textures))texture.url=offlineTextures[key];
 const offline='/* Offline Gaming room bundle — generated; not deployed. See CREDITS.md. */\nwindow.WorkspaceModelData='+JSON.stringify(offlineData)+';\n';
 fs.writeFileSync('assets/models/room-scene.js',offline);
-const stats={sourceFanTriangles,sourceTriangles,preDecimationTriangles,retainedTriangles,excludedTriangles:sourceTriangles-preDecimationTriangles,triangles:retainedTriangles+2,decimation:true,decimationRatio:retainedTriangles/preDecimationTriangles,maxSimplificationError,geometryEncoding:'deflate-float32',geometryBytes:geometryBuffer.length,compressedGeometryBytes:compressedGeometry.length,textureBytes,manifestBytes:Buffer.byteLength(manifest),offlineBundleBytes:Buffer.byteLength(offline),maxTextureSize:2048,textureQuality:{color:88,normal:95},drawMeshes:data.parts.length+1,textures:Object.keys(data.textures).length,bytes:Buffer.byteLength(manifest)+compressedGeometry.length+textureBytes,screen:data.screen,missingTextures:[...missing]};
+const stats={sourceFanTriangles,sourceTriangles,preDecimationTriangles,retainedTriangles,excludedTriangles:sourceTriangles-preDecimationTriangles,triangles:retainedTriangles+2,decimation:true,decimationRatio:retainedTriangles/preDecimationTriangles,maxSimplificationError,geometryEncoding:'deflate-float32',geometryBytes:geometryBuffer.length,compressedGeometryBytes:compressedGeometry.length,textureBytes,manifestBytes:Buffer.byteLength(manifest),offlineBundleBytes:Buffer.byteLength(offline),maxTextureSize,textureQuality,drawMeshes:data.parts.length+1,textures:Object.keys(data.textures).length,bytes:Buffer.byteLength(manifest)+compressedGeometry.length+textureBytes,screen:data.screen,missingTextures:[...missing]};
 fs.writeFileSync('assets/models/model-stats.json',JSON.stringify(stats,null,2)+'\n');console.log(stats);
